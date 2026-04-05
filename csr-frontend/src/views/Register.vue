@@ -3,11 +3,11 @@
     <!-- Local Header just for Register -->
     <header class="sticky top-0 bg-emerald-500 text-white p-4 shadow-md z-10 font-bold text-center flex items-center justify-center space-x-2">
       <span class="text-xl">📋</span>
-      <span>ลงทะเบียนข้อมูล</span>
+      <span>{{ pageTitle }}</span>
     </header>
 
     <main class="p-4 space-y-6">
-    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-500 text-center">ลงทะเบียนผู้ปกครองและนักเรียน</h1>
+    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-500 text-center">{{ formTitle }}</h1>
     
     <div v-if="!isReady" class="text-center text-gray-500 py-10 animate-pulse">
       กำลังเชื่อมต่อ LINE...
@@ -70,7 +70,7 @@
 
       <button type="submit" :disabled="isLoading" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 transition-all">
         <span v-if="isLoading">พริบตาเดียว... กำลังบันทึกข้อมูล 🚀</span>
-        <span v-else>ลงทะเบียนข้อมูลทันที</span>
+        <span v-else>{{ submitLabel }}</span>
       </button>
     </form>
     </main>
@@ -78,12 +78,18 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 
 const router = useRouter();
-const { initLiff, isReady, profile } = useLiff();
+const route = useRoute();
+const { initLiff, isReady, getAccessToken } = useLiff();
+const isEditMode = computed(() => route.name === 'EditProfile');
+const pageTitle = computed(() => isEditMode.value ? 'แก้ไขข้อมูล' : 'ลงทะเบียนข้อมูล');
+const formTitle = computed(() => isEditMode.value ? 'แก้ไขข้อมูลผู้ปกครองและนักเรียน' : 'ลงทะเบียนผู้ปกครองและนักเรียน');
+const submitLabel = computed(() => isEditMode.value ? 'บันทึกการแก้ไขข้อมูล' : 'ลงทะเบียนข้อมูลทันที');
 
 const form = reactive({
   student: {
@@ -108,8 +114,42 @@ const form = reactive({
 
 const isLoading = ref(false);
 
-onMounted(() => {
-  initLiff();
+const loadExistingProfile = async () => {
+  const token = getAccessToken();
+  if (!token) {
+    alert('❌ ไม่พบ LINE access token สำหรับเรียกใช้งาน API');
+    router.push('/register');
+    return;
+  }
+
+  const response = await fetch('/api/me', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    router.push('/register');
+    return;
+  }
+
+  const data = await response.json();
+  form.student.studentId = data.student.studentId ?? '';
+  form.student.name = data.student.name ?? '';
+  form.student.newRoom = data.student.newRoom ?? data.student.room ?? 'ม.1/2';
+  form.student.newNo = data.student.newNo ?? null;
+  form.student.phone = data.student.phone ?? '';
+  form.guardian.name = data.guardian.name ?? '';
+  form.guardian.relationType = data.guardian.relationType ?? '';
+  form.guardian.phone = data.guardian.phone ?? '';
+};
+
+onMounted(async () => {
+  await initLiff();
+
+  if (isEditMode.value) {
+    await loadExistingProfile();
+  }
 });
 
 const submitForm = async () => {
@@ -138,8 +178,11 @@ const submitForm = async () => {
       }
     };
 
-    // จำลอง Token ตอนพัฒนา หากใช้ liff.getAccessToken() ของจริงจะดีกว่าหากรันบนพาเนล LINE จริง
-    const token = profile.value?.userId === 'mock-line-uid-1234' ? 'mock-token' : 'mock-token'; // Fallback to mock token for dev demo
+    const token = getAccessToken();
+    if (!token) {
+      alert('❌ ไม่พบ LINE access token สำหรับเรียกใช้งาน API');
+      return;
+    }
 
     const response = await fetch('/api/register', {
       method: 'POST',

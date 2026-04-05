@@ -15,6 +15,7 @@ public interface IStudentRepository
     Task<Either<AppError, Student>> GetStudentByIdAsync(Guid id);
     Task<Either<AppError, Guardian>> GetGuardianByLineIdAsync(string lineUserId);
     Task<Either<AppError, Unit>> AddStudentAsync(Student student);
+    Task<Either<AppError, Unit>> UpsertStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpdateStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpsertGuardianAsync(Guardian guardian);
     Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync();
@@ -178,6 +179,61 @@ public class StudentRepository : IStudentRepository
                 return Unit.Default;
             
             return AppError.Internal("Failed to insert student.");
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, Unit>> UpsertStudentAsync(Student student)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var sql = @"
+                INSERT INTO Students (
+                    Id, StudentId, OldRoom, OldNo, NewRoom, NewNo,
+                    EncryptedName, Nickname, BloodType, DOB,
+                    EncryptedPhone, Status
+                ) VALUES (
+                    @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo,
+                    @EncryptedName, @Nickname, @BloodType, @DOB,
+                    @EncryptedPhone, @Status
+                )
+                ON CONFLICT(Id) DO UPDATE SET
+                    StudentId = excluded.StudentId,
+                    OldRoom = excluded.OldRoom,
+                    OldNo = excluded.OldNo,
+                    NewRoom = excluded.NewRoom,
+                    NewNo = excluded.NewNo,
+                    EncryptedName = excluded.EncryptedName,
+                    Nickname = excluded.Nickname,
+                    BloodType = excluded.BloodType,
+                    DOB = excluded.DOB,
+                    EncryptedPhone = excluded.EncryptedPhone,
+                    Status = excluded.Status;";
+
+            var result = await connection.ExecuteAsync(sql, new
+            {
+                Id = student.Id.ToString(),
+                student.StudentId,
+                student.OldRoom,
+                student.OldNo,
+                student.NewRoom,
+                student.NewNo,
+                student.EncryptedName,
+                student.Nickname,
+                student.BloodType,
+                student.DOB,
+                student.EncryptedPhone,
+                student.Status
+            });
+
+            if (result > 0)
+                return Unit.Default;
+
+            return AppError.Internal("Failed to upsert student.");
         }
         catch (Exception ex)
         {

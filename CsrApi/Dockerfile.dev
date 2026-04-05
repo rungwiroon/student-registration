@@ -1,0 +1,7 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+WORKDIR /src
+COPY ["CsrApi.csproj", "./"]
+RUN dotnet restore "CsrApi.csproj"
+COPY . .
+EXPOSE 8080
+CMD ["dotnet", "watch", "run", "--project", "CsrApi.csproj", "--no-launch-profile", "--urls", "http://0.0.0.0:8080"]

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using CsrApi.Models;
 
 namespace CsrApi.Services;
@@ -22,9 +21,10 @@ public class MaskingService : IMaskingService
         };
     }
 
-    private string MaskStudentId(string studentId)
+    private string MaskStudentId(string? studentId)
     {
-        if (string.IsNullOrEmpty(studentId) || studentId.Length < 3) return studentId;
+        if (string.IsNullOrEmpty(studentId)) return string.Empty;
+        if (studentId.Length < 3) return studentId;
         // Example logic: 30***3
         return studentId.Substring(0, 2) + new string('*', studentId.Length - 3) + studentId.Substring(studentId.Length - 1);
     }
@@ -32,18 +32,17 @@ public class MaskingService : IMaskingService
     private string MaskName(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
-        var parts = name.Split(' ');
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 1) return MaskString(name, 2);
-        
-        // คุณอรรถพล ภู*******
-        var firstName = parts[0];
-        var lastName = parts[1];
+
+        var firstName = string.Join(' ', parts[..^1]);
+        var lastName = parts[^1];
         
         var maskedLastName = lastName.Length > 2 
             ? lastName.Substring(0, 2) + new string('*', lastName.Length - 2) 
             : lastName;
 
-        return $"คุณ{firstName} {maskedLastName}";
+        return $"{firstName} {maskedLastName}";
     }
 
     private string MaskPhone(string phone)

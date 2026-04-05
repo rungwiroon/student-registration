@@ -8,6 +8,11 @@ const routes = [
     component: () => import('../views/Register.vue')
   },
   {
+    path: '/profile/edit',
+    name: 'EditProfile',
+    component: () => import('../views/Register.vue')
+  },
+  {
     path: '/',
     component: MainLayout,
     redirect: '/dashboard',

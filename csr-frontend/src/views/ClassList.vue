@@ -42,14 +42,29 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useLiff } from '../composables/useLiff';
 
 const students = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
+const { initLiff, getAccessToken } = useLiff();
 
 onMounted(async () => {
   try {
-    const response = await fetch('/api/class');
+    await initLiff();
+
+    const token = getAccessToken();
+    if (!token) {
+      error.value = 'ไม่พบ LINE access token สำหรับเรียกใช้งาน API';
+      return;
+    }
+
+    const response = await fetch('/api/class', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
     if (response.ok) {
       students.value = await response.json();
     } else {

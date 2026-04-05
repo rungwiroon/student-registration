@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -8,11 +6,25 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/csrapi.db;Password=SuperSecretDbPassword123!;
+      - EncryptionKey=${ENCRYPTION_KEY:-my_super_secret_encryption_key_256}
+      - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID:-YOUR_LIFF_CHANNEL_ID}
     volumes:
       - app_data:/app/data
+
+  frontend:
+    build:
+      context: ./csr-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_LIFF_ID: ${VITE_LIFF_ID:-}
+        VITE_USE_MOCK_LIFF: ${VITE_USE_MOCK_LIFF:-false}
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
 
 volumes:
   app_data:

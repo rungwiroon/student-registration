@@ -14,6 +14,7 @@ public class LiffAuthMiddleware
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _liffChannelId;
     private readonly bool _useMockAuth;
+    private readonly string _mockUserId;
 
     public LiffAuthMiddleware(RequestDelegate next, ILogger<LiffAuthMiddleware> logger, IHttpClientFactory httpClientFactory, IConfiguration config)
     {
@@ -22,6 +23,7 @@ public class LiffAuthMiddleware
         _httpClientFactory = httpClientFactory;
         _liffChannelId = config["Line:LiffChannelId"] ?? "";
         _useMockAuth = config.GetValue<bool>("Line:UseMockAuth", false);
+        _mockUserId = config["Line:MockUserId"] ?? "mock-line-user-id";
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -46,7 +48,7 @@ public class LiffAuthMiddleware
         if (_useMockAuth)
         {
             _logger.LogInformation("Using mock authentication for token: {Token}", token);
-            context.Items["LineUserId"] = "mock-line-user-id";
+            context.Items["LineUserId"] = _mockUserId;
             await _next(context);
             return;
         }

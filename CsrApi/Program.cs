@@ -3,13 +3,11 @@ using CsrApi.Middleware;
 using CsrApi.Models;
 using CsrApi.Repositories;
 using CsrApi.Services;
+using Dapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
-using System.Data;
-using Dapper;
 
 SqlMapper.AddTypeHandler(new SqliteGuidTypeHandler());
 
@@ -24,6 +22,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddSingleton<IMaskingService, MaskingService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
 
 // Configure SQLCipher provider for SQLite
 SQLitePCL.Batteries_V2.Init();
@@ -34,7 +33,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var repo = scope.ServiceProvider.GetRequiredService<IStudentRepository>();
+    var seeder = scope.ServiceProvider.GetRequiredService<IDevelopmentDataSeeder>();
     await repo.InitializeDatabaseAsync();
+    await seeder.SeedAsync();
 }
 
 // Configure the HTTP request pipeline.
@@ -44,7 +45,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (builder.Configuration.GetValue<bool>("Http:UseHttpsRedirection"))
+{
+    app.UseHttpsRedirection();
+}
 
 // Add LINE LIFF Auth Middleware
 app.UseMiddleware<LiffAuthMiddleware>();
@@ -116,13 +120,16 @@ app.MapPost("/api/register", async (RegistrationRequest request, HttpContext con
         Status = "Pending"
     };
 
-    if (existingGuardian.IsRight)
+    var studentResult = existingGuardian.IsRight
+        ? await repo.UpdateStudentAsync(student)
+        : await repo.AddStudentAsync(student);
+
+    if (studentResult.IsLeft)
     {
-        await repo.UpdateStudentAsync(student);
-    }
-    else
-    {
-        await repo.AddStudentAsync(student);
+        return studentResult.Match<IResult>(
+            Right: _ => Results.Ok(),
+            Left: err => err.StatusCode == 400 ? Results.BadRequest(err.Message) : Results.StatusCode(err.StatusCode)
+        );
     }
 
     var guardian = new Guardian
@@ -168,10 +175,13 @@ app.MapGet("/api/me", async (HttpContext context, IStudentRepository repo, IEncr
                             StudentId = s.StudentId,
                             Name = encryption.Decrypt(s.EncryptedName),
                             Room = string.IsNullOrEmpty(s.NewRoom) ? s.OldRoom : s.NewRoom,
+                            NewRoom = s.NewRoom,
+                            NewNo = s.NewNo,
                             Phone = string.IsNullOrEmpty(s.EncryptedPhone) ? "" : encryption.Decrypt(s.EncryptedPhone)
                         },
                         Guardian = new {
                             Name = string.IsNullOrEmpty(g.EncryptedName) ? "" : encryption.Decrypt(g.EncryptedName),
+                            Phone = string.IsNullOrEmpty(g.EncryptedPhone) ? "" : encryption.Decrypt(g.EncryptedPhone),
                             RelationType = g.RelationType
                         }
                     });

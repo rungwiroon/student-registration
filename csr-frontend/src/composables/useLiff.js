@@ -4,19 +4,23 @@ import liff from '@line/liff';
 export function useLiff() {
   const isReady = ref(false);
   const profile = ref(null);
+  const accessToken = ref('');
   const error = ref(null);
+  const useMockLiff = import.meta.env.VITE_USE_MOCK_LIFF === 'true';
 
   const initLiff = async () => {
     try {
       const liffId = import.meta.env.VITE_LIFF_ID;
-      
-      // ถ้าไม่มี LIFF ID ในระบบ (รัน Local) ให้เข้าโหมด Mock อัตโนมัติ
-      if (!liffId) {
-        console.warn('LIFF ID is missing. Running in Mock Mode for local testing.');
+
+      if (useMockLiff) {
         profile.value = { userId: 'mock-line-uid-1234', displayName: 'Mock Parent' };
-        // หน่วงเวลาเล็กน้อยเพื่อให้เห็นว่ามีการเชื่อมต่อ
-        setTimeout(() => { isReady.value = true; }, 500);
+        accessToken.value = 'mock-token';
+        isReady.value = true;
         return;
+      }
+
+      if (!liffId) {
+        throw new Error('VITE_LIFF_ID is required when VITE_USE_MOCK_LIFF is disabled.');
       }
 
       await liff.init({ liffId });
@@ -24,16 +28,17 @@ export function useLiff() {
         liff.login();
       } else {
         profile.value = await liff.getProfile();
+        accessToken.value = liff.getAccessToken() ?? '';
         isReady.value = true;
       }
     } catch (err) {
       error.value = err;
       console.error('LIFF initialization failed', err);
-      // Fallback ถ้าพัง ให้เข้าสู Mock Mode เผื่อฉุกเฉินบน Local
-      profile.value = { userId: 'fallback-mock-uid', displayName: 'Fallback Parent' };
       isReady.value = true;
     }
   };
 
-  return { initLiff, isReady, profile, error };
+  const getAccessToken = () => accessToken.value;
+
+  return { initLiff, isReady, profile, error, getAccessToken };
 }

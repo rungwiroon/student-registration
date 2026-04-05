@@ -54,7 +54,7 @@
 
     <!-- Action -->
     <div class="pt-2">
-      <router-link to="/register" class="w-full block text-center bg-white border border-emerald-500 text-emerald-600 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-emerald-50 focus:ring-4 focus:ring-emerald-100 transition active:scale-95">
+      <router-link to="/profile/edit" class="w-full block text-center bg-white border border-emerald-500 text-emerald-600 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-emerald-50 focus:ring-4 focus:ring-emerald-100 transition active:scale-95">
         ✏️ แก้ไขข้อมูลเพื่อปรับปรุง
       </router-link>
     </div>
@@ -67,7 +67,7 @@ import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 
 const router = useRouter();
-const { initLiff, profile } = useLiff();
+const { initLiff, getAccessToken } = useLiff();
 
 const isLoading = ref(true);
 const studentData = ref(null);
@@ -83,7 +83,11 @@ onMounted(async () => {
   await initLiff();
   
   try {
-    const token = profile.value?.userId === 'mock-line-uid-1234' ? 'mock-token' : 'mock-token'; // Fallback to mock token for dev demo
+    const token = getAccessToken();
+    if (!token) {
+      router.push('/register');
+      return;
+    }
     
     const response = await fetch('/api/me', {
       headers: {

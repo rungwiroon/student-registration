@@ -5,6 +5,61 @@
 
 ---
 
+## 🚀 Docker Workflows
+
+ระบบนี้แยก workflow เป็น `production-like` และ `development` อย่างชัดเจน
+
+### **Production-like compose**
+```bash
+docker compose up --build
+```
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8080`
+
+### **Development compose with hot reload**
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+- Frontend ใช้ Vite dev server พร้อม hot reload
+- Backend ใช้ `dotnet watch`
+- dev stack เปิด mock auth และ seed data อัตโนมัติ
+- dev stack ใช้ฐานข้อมูลแยกที่ `/app/data/csrapi-dev.db`
+
+### **Environment setup**
+- คัดลอก `.env.example` เป็น `.env` เมื่อต้องการตั้งค่าจริง
+- ค่าที่สำคัญ:
+  - `ENCRYPTION_KEY`
+  - `LINE_LIFF_CHANNEL_ID`
+  - `VITE_LIFF_ID`
+  - `VITE_USE_MOCK_LIFF`
+
+### **Seed / test data**
+- development compose จะ seed ข้อมูลทดสอบให้เองทุกครั้งแบบ idempotent
+- มีข้อมูลผู้ปกครอง mock และนักเรียนตัวอย่างสำหรับทดสอบหน้า `Dashboard` และ `ClassList`
+- ถ้าต้องการเริ่ม dev data ใหม่ ให้ลบ volume แล้วรันใหม่
+
+```bash
+docker compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml up --build
+```
+
+### **Stop services**
+```bash
+docker compose down
+```
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+### **Data persistence**
+- production-like compose และ development compose ใช้ Docker volume สำหรับเก็บฐานข้อมูล
+- การ `docker compose down` จะไม่ลบข้อมูลใน volume นั้น
+
+---
+
 ## 🏗️ 1. Project Overview
 ระบบเว็บแอปพลิเคชันภายใน LINE (LIFF) เพื่ออำนวยความสะดวกในการจัดเก็บและเข้าถึงข้อมูลนักเรียน โดยเน้นความปลอดภัยของข้อมูลส่วนบุคคล (PDPA) ตามโครงสร้างข้อมูลจากไฟล์ Excel ปีการศึกษา 2561
 
@@ -50,7 +105,7 @@
 ### **Data Access Rules**
 1. **Encryption at Rest:** ข้อมูลที่ระบุว่าเป็น `Enc` จะถูกเข้ารหัสด้วย AES-256 ก่อนบันทึกลง SQLite
 2. **Masking at UI:** 
-   - ชื่อจริงจะแสดงเป็น: `นาย รัชพล ภู*******`
+   - ชื่อจริงจะแสดงเป็น: `สมชาย ใจ**`
    - เบอร์โทรจะแสดงเป็น: `081-XXX-5678`
 3. **Identity Verification:** ผู้ปกครองต้องกรอก `StudentId` + `OldRoom` + `OldNo` เพื่อทำการ Binding LINE ID ในครั้งแรก
 
@@ -64,11 +119,7 @@
 - **Directory:** `ClassList.vue` (รายชื่อเพื่อนในห้องแบบ Masked Name)
 - **Contacts:** `CommitteeList.vue` (เบอร์ติดต่อครูและกรรมการ พร้อมปุ่ม Click-to-Call)
 
-### **Frontend Logic (Masking Utilities)**
-```javascript
-// Example: src/utils/masking.js
-export const maskPhone = (phone) => phone?.replace(/(\d{3})\d{4}(\d{3})/, '$1-XXX-$2');
-export const maskName = (name) => {
-  const [first, ...rest] = name.split(' ');
-  return `${first} ${rest.join(' ').substring(0, 1)}*******`;
-};
+### **Frontend Logic**
+- หน้า frontend เรียก API ผ่าน `/api/*`
+- ใน production-like compose, frontend static files ถูกเสิร์ฟผ่าน `nginx` และ proxy `/api` ไปที่ backend
+- ใน development compose, Vite dev server จะ proxy `/api` ไปที่ backend service ภายใน Docker network
