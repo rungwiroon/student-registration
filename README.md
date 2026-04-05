@@ -32,8 +32,22 @@ docker compose -f docker-compose.dev.yml up --build
 - ค่าที่สำคัญ:
   - `ENCRYPTION_KEY`
   - `LINE_LIFF_CHANNEL_ID`
+  - `LINE_USE_MOCK_AUTH`
+  - `LINE_MOCK_USER_ID`
   - `VITE_LIFF_ID`
   - `VITE_USE_MOCK_LIFF`
+- สำหรับ local Docker ถ้ายังไม่ได้ต่อ LIFF จริง ให้เปิด mock ทั้งสองฝั่งให้ตรงกัน:
+  - `LINE_USE_MOCK_AUTH=true`
+  - `VITE_USE_MOCK_LIFF=true`
+- ถ้าจะใช้ LINE จริง ต้องตั้ง `LINE_LIFF_CHANNEL_ID` และ `VITE_LIFF_ID` ให้ตรงกัน และปิด mock ทั้งสองฝั่งพร้อมกัน
+
+### **Protected photo storage**
+- รูปนักเรียนและรูปผู้ปกครองถูกอัปโหลดผ่าน `multipart/form-data` ไปยัง backend เท่านั้น
+- backend เก็บไฟล์ไว้ใน `CsrApi/App_Data/ProtectedUploads` และ **ไม่** เปิดเป็น public static files
+- การเรียกดูรูปใช้ endpoint ที่ต้องมี LINE access token:
+  - `GET /api/me/student-photo`
+  - `GET /api/me/guardian-photo`
+- ตั้งค่าได้ผ่าน `PhotoStorage` ใน `CsrApi/appsettings.json`
 
 ### **Seed / test data**
 - development compose จะ seed ข้อมูลทดสอบให้เองทุกครั้งแบบ idempotent
@@ -79,6 +93,9 @@ docker compose -f docker-compose.dev.yml down
 | `EncName` | TEXT | NOT NULL | ชื่อ-นามสกุลจริง (**AES-256**) |
 | `Nickname` | TEXT | - | ชื่อเล่น |
 | `BloodType` | TEXT | - | กรุ๊ปเลือด (**Encrypted**) |
+| `PhotoFileName` | TEXT | - | ชื่อไฟล์รูปที่เก็บใน protected storage |
+| `PhotoContentType` | TEXT | - | MIME type ของรูป |
+| `PhotoUploadedAtUtc` | TEXT | - | เวลาอัปโหลดรูป |
 | `Status` | TEXT | - | สถานะการเรียน (ปกติ/ร/มผ) |
 
 ### **Table: `Guardians`**
@@ -90,6 +107,9 @@ docker compose -f docker-compose.dev.yml down
 | `EncName` | TEXT | - | ชื่อ-นามสกุล (**AES-256**) |
 | `EncPhone` | TEXT | - | เบอร์โทรศัพท์ (**AES-256**) |
 | `LineUserId` | TEXT | UNIQUE | LINE ID จาก LIFF สำหรับ Login |
+| `PhotoFileName` | TEXT | - | ชื่อไฟล์รูปที่เก็บใน protected storage |
+| `PhotoContentType` | TEXT | - | MIME type ของรูป |
+| `PhotoUploadedAtUtc` | TEXT | - | เวลาอัปโหลดรูป |
 
 ### **Table: `Committees`**
 | Column | Type | Constraints | Logic / Security |
@@ -107,7 +127,8 @@ docker compose -f docker-compose.dev.yml down
 2. **Masking at UI:** 
    - ชื่อจริงจะแสดงเป็น: `สมชาย ใจ**`
    - เบอร์โทรจะแสดงเป็น: `081-XXX-5678`
-3. **Identity Verification:** ผู้ปกครองต้องกรอก `StudentId` + `OldRoom` + `OldNo` เพื่อทำการ Binding LINE ID ในครั้งแรก
+3. **Protected Media Access:** รูปทั้งหมดถูกเก็บนอก public static serving และเข้าถึงได้เฉพาะผ่าน API ที่ยืนยัน LINE token แล้ว
+4. **Identity Verification:** ผู้ปกครองต้องกรอก `StudentId` + `OldRoom` + `OldNo` เพื่อทำการ Binding LINE ID ในครั้งแรก
 
 ---
 
@@ -121,5 +142,6 @@ docker compose -f docker-compose.dev.yml down
 
 ### **Frontend Logic**
 - หน้า frontend เรียก API ผ่าน `/api/*`
+- หน้า `Register.vue` ทำหน้าที่ orchestration เท่านั้น โดยแยก form state ไปที่ `useRegistrationForm` และแยก UI รูปเป็น `StudentPhotoUpload.vue` กับ `GuardianPhotoUpload.vue`
 - ใน production-like compose, frontend static files ถูกเสิร์ฟผ่าน `nginx` และ proxy `/api` ไปที่ backend
 - ใน development compose, Vite dev server จะ proxy `/api` ไปที่ backend service ภายใน Docker network

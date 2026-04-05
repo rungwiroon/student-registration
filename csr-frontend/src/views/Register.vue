@@ -41,6 +41,13 @@
         </div>
       </section>
 
+      <StudentPhotoUpload
+        :model-value="photos.studentPhoto"
+        :existing-photo-url="existingPhotoUrls.student"
+        :access-token="accessToken"
+        @update:model-value="setStudentPhoto"
+      />
+
       <!-- Guardian Info -->
       <section class="bg-emerald-50 p-4 rounded-xl shadow-sm border border-emerald-100">
         <h2 class="font-bold text-emerald-800 mb-3 border-b border-emerald-200 pb-2">🛡️ ข้อมูลผู้ปกครอง (คุณ)</h2>
@@ -65,11 +72,32 @@
             <label class="block text-sm font-medium text-emerald-700">เบอร์โทรศัพท์ติดต่อ</label>
             <input v-model="form.guardian.phone" type="tel" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="08..." />
           </div>
+
+          <div>
+            <label class="block text-sm font-medium text-emerald-700">อาชีพ</label>
+            <input v-model="form.guardian.occupation" type="text" class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="ข้าราชการ, พนักงานบริษัท..." />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-emerald-700">อีเมล</label>
+            <input v-model="form.guardian.email" type="email" class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="name@example.com" />
+          </div>
         </div>
       </section>
 
-      <button type="submit" :disabled="isLoading" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 transition-all">
-        <span v-if="isLoading">พริบตาเดียว... กำลังบันทึกข้อมูล 🚀</span>
+      <GuardianPhotoUpload
+        :model-value="photos.guardianPhoto"
+        :existing-photo-url="existingPhotoUrls.guardian"
+        :access-token="accessToken"
+        @update:model-value="setGuardianPhoto"
+      />
+
+      <div v-if="isProfileLoading" class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        กำลังโหลดข้อมูลเดิมและรูปที่มีสิทธิ์เข้าถึง...
+      </div>
+
+      <button type="submit" :disabled="isSubmitting" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 transition-all">
+        <span v-if="isSubmitting">พริบตาเดียว... กำลังบันทึกข้อมูล 🚀</span>
         <span v-else>{{ submitLabel }}</span>
       </button>
     </form>
@@ -78,70 +106,48 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
+import { useRegistrationForm } from '../composables/useRegistrationForm';
+import StudentPhotoUpload from '../components/StudentPhotoUpload.vue';
+import GuardianPhotoUpload from '../components/GuardianPhotoUpload.vue';
 
 const router = useRouter();
 const route = useRoute();
 const { initLiff, isReady, getAccessToken } = useLiff();
+const {
+  form,
+  photos,
+  existingPhotoUrls,
+  isSubmitting,
+  isProfileLoading,
+  loadExistingProfile: loadExistingProfileState,
+  submitRegistrationForm,
+  setStudentPhoto,
+  setGuardianPhoto
+} = useRegistrationForm();
 const isEditMode = computed(() => route.name === 'EditProfile');
 const pageTitle = computed(() => isEditMode.value ? 'แก้ไขข้อมูล' : 'ลงทะเบียนข้อมูล');
 const formTitle = computed(() => isEditMode.value ? 'แก้ไขข้อมูลผู้ปกครองและนักเรียน' : 'ลงทะเบียนผู้ปกครองและนักเรียน');
 const submitLabel = computed(() => isEditMode.value ? 'บันทึกการแก้ไขข้อมูล' : 'ลงทะเบียนข้อมูลทันที');
 
-const form = reactive({
-  student: {
-    studentId: '',
-    name: '',
-    oldRoom: '',
-    oldNo: null,
-    newRoom: 'ม.1/2',
-    newNo: null,
-    phone: '',
-    bloodType: '',
-    dob: ''
-  },
-  guardian: {
-    relationType: '',
-    name: '',
-    phone: '',
-    occupation: '',
-    email: ''
-  }
-});
-
-const isLoading = ref(false);
+const accessToken = computed(() => getAccessToken());
 
 const loadExistingProfile = async () => {
-  const token = getAccessToken();
+  const token = accessToken.value;
   if (!token) {
     alert('❌ ไม่พบ LINE access token สำหรับเรียกใช้งาน API');
     router.push('/register');
     return;
   }
 
-  const response = await fetch('/api/me', {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  if (!response.ok) {
+  try {
+    await loadExistingProfileState(token);
+  } catch {
     router.push('/register');
-    return;
   }
-
-  const data = await response.json();
-  form.student.studentId = data.student.studentId ?? '';
-  form.student.name = data.student.name ?? '';
-  form.student.newRoom = data.student.newRoom ?? data.student.room ?? 'ม.1/2';
-  form.student.newNo = data.student.newNo ?? null;
-  form.student.phone = data.student.phone ?? '';
-  form.guardian.name = data.guardian.name ?? '';
-  form.guardian.relationType = data.guardian.relationType ?? '';
-  form.guardian.phone = data.guardian.phone ?? '';
 };
 
 onMounted(async () => {
@@ -153,58 +159,21 @@ onMounted(async () => {
 });
 
 const submitForm = async () => {
-  if (isLoading.value) return;
-  isLoading.value = true;
+  if (isSubmitting.value) return;
 
   try {
-    const payload = {
-      student: {
-        studentId: form.student.studentId || null,
-        name: form.student.name,
-        oldRoom: form.student.oldRoom || null,
-        oldNo: form.student.oldNo || null,
-        newRoom: form.student.newRoom || null,
-        newNo: form.student.newNo || null,
-        phone: form.student.phone || '',
-        bloodType: form.student.bloodType || '',
-        dob: form.student.dob || ''
-      },
-      guardian: {
-        relationType: form.guardian.relationType,
-        name: form.guardian.name,
-        phone: form.guardian.phone,
-        occupation: form.guardian.occupation || '',
-        email: form.guardian.email || ''
-      }
-    };
-
-    const token = getAccessToken();
+    const token = accessToken.value;
     if (!token) {
       alert('❌ ไม่พบ LINE access token สำหรับเรียกใช้งาน API');
       return;
     }
 
-    const response = await fetch('/api/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (response.ok) {
-      alert('🎉 ลงทะเบียนสำเร็จเรียบร้อย ข้อมูลเข้าสู่ระบบแล้วครับ!');
-      router.push('/');
-    } else {
-      const errorText = await response.text();
-      alert(`⚠️ เกิดข้อผิดพลาด: ${errorText}`);
-    }
+    await submitRegistrationForm(token);
+    alert('🎉 ลงทะเบียนสำเร็จเรียบร้อย ข้อมูลเข้าสู่ระบบแล้วครับ!');
+    router.push('/');
   } catch (error) {
     console.error('API Error:', error);
-    alert('❌ ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ ตรวจสอบว่า CsrApi ถูกรันอยู่หรือไม่รัน');
-  } finally {
-    isLoading.value = false;
+    alert(`⚠️ เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'}`);
   }
 };
 </script>

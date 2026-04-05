@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CsrApi.Models;
 using Dapper;
@@ -60,6 +61,9 @@ public class StudentRepository : IStudentRepository
                 BloodType TEXT,
                 DOB TEXT,
                 EncryptedPhone TEXT,
+                PhotoFileName TEXT,
+                PhotoContentType TEXT,
+                PhotoUploadedAtUtc TEXT,
                 Status TEXT NOT NULL
             );
             
@@ -72,6 +76,9 @@ public class StudentRepository : IStudentRepository
                 Occupation TEXT,
                 Email TEXT,
                 LineUserId TEXT UNIQUE,
+                PhotoFileName TEXT,
+                PhotoContentType TEXT,
+                PhotoUploadedAtUtc TEXT,
                 FOREIGN KEY(StudentId) REFERENCES Students(Id)
             );
             
@@ -84,6 +91,23 @@ public class StudentRepository : IStudentRepository
             );";
 
         await connection.ExecuteAsync(sql);
+        await EnsureColumnAsync(connection, "Students", "PhotoFileName", "TEXT");
+        await EnsureColumnAsync(connection, "Students", "PhotoContentType", "TEXT");
+        await EnsureColumnAsync(connection, "Students", "PhotoUploadedAtUtc", "TEXT");
+        await EnsureColumnAsync(connection, "Guardians", "PhotoFileName", "TEXT");
+        await EnsureColumnAsync(connection, "Guardians", "PhotoContentType", "TEXT");
+        await EnsureColumnAsync(connection, "Guardians", "PhotoUploadedAtUtc", "TEXT");
+    }
+
+    private static async Task EnsureColumnAsync(SqliteConnection connection, string tableName, string columnName, string columnDefinition)
+    {
+        var columns = await connection.QueryAsync<TableColumnInfo>($"PRAGMA table_info({tableName});");
+        if (columns.Any(column => string.Equals(column.Name, columnName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        await connection.ExecuteAsync($"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnDefinition};");
     }
 
     public async Task<Either<AppError, Student>> GetStudentByIdAsync(Guid id)
@@ -151,12 +175,12 @@ public class StudentRepository : IStudentRepository
                 INSERT INTO Students (
                     Id, StudentId, OldRoom, OldNo, NewRoom, NewNo, 
                     EncryptedName, Nickname, BloodType, DOB, 
-                    EncryptedPhone, Status
+                    EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status
                 ) 
                 VALUES (
                     @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo, 
                     @EncryptedName, @Nickname, @BloodType, @DOB, 
-                    @EncryptedPhone, @Status
+                    @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status
                 )";
 
             var result = await connection.ExecuteAsync(sql, new 
@@ -172,6 +196,9 @@ public class StudentRepository : IStudentRepository
                 student.BloodType,
                 student.DOB,
                 student.EncryptedPhone,
+                student.PhotoFileName,
+                student.PhotoContentType,
+                student.PhotoUploadedAtUtc,
                 student.Status
             });
 
@@ -195,11 +222,11 @@ public class StudentRepository : IStudentRepository
                 INSERT INTO Students (
                     Id, StudentId, OldRoom, OldNo, NewRoom, NewNo,
                     EncryptedName, Nickname, BloodType, DOB,
-                    EncryptedPhone, Status
+                    EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status
                 ) VALUES (
                     @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo,
                     @EncryptedName, @Nickname, @BloodType, @DOB,
-                    @EncryptedPhone, @Status
+                    @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status
                 )
                 ON CONFLICT(Id) DO UPDATE SET
                     StudentId = excluded.StudentId,
@@ -212,6 +239,9 @@ public class StudentRepository : IStudentRepository
                     BloodType = excluded.BloodType,
                     DOB = excluded.DOB,
                     EncryptedPhone = excluded.EncryptedPhone,
+                    PhotoFileName = excluded.PhotoFileName,
+                    PhotoContentType = excluded.PhotoContentType,
+                    PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc,
                     Status = excluded.Status;";
 
             var result = await connection.ExecuteAsync(sql, new
@@ -227,6 +257,9 @@ public class StudentRepository : IStudentRepository
                 student.BloodType,
                 student.DOB,
                 student.EncryptedPhone,
+                student.PhotoFileName,
+                student.PhotoContentType,
+                student.PhotoUploadedAtUtc,
                 student.Status
             });
 
@@ -258,6 +291,9 @@ public class StudentRepository : IStudentRepository
                     BloodType = @BloodType,
                     DOB = @DOB,
                     EncryptedPhone = @EncryptedPhone,
+                    PhotoFileName = @PhotoFileName,
+                    PhotoContentType = @PhotoContentType,
+                    PhotoUploadedAtUtc = @PhotoUploadedAtUtc,
                     Status = @Status
                 WHERE Id = @Id";
 
@@ -274,6 +310,9 @@ public class StudentRepository : IStudentRepository
                 student.BloodType,
                 student.DOB,
                 student.EncryptedPhone,
+                student.PhotoFileName,
+                student.PhotoContentType,
+                student.PhotoUploadedAtUtc,
                 student.Status
             });
 
@@ -295,9 +334,9 @@ public class StudentRepository : IStudentRepository
             using var connection = GetConnection();
             var sql = @"
                 INSERT INTO Guardians (
-                    Id, StudentId, RelationType, EncryptedName, EncryptedPhone, Occupation, Email, LineUserId
+                    Id, StudentId, RelationType, EncryptedName, EncryptedPhone, Occupation, Email, LineUserId, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
                 ) VALUES (
-                    @Id, @StudentId, @RelationType, @EncryptedName, @EncryptedPhone, @Occupation, @Email, @LineUserId
+                    @Id, @StudentId, @RelationType, @EncryptedName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
                 )
                 ON CONFLICT(LineUserId) DO UPDATE SET
                     RelationType = excluded.RelationType,
@@ -305,7 +344,10 @@ public class StudentRepository : IStudentRepository
                     EncryptedName = excluded.EncryptedName,
                     EncryptedPhone = excluded.EncryptedPhone,
                     Occupation = excluded.Occupation,
-                    Email = excluded.Email;";
+                    Email = excluded.Email,
+                    PhotoFileName = excluded.PhotoFileName,
+                    PhotoContentType = excluded.PhotoContentType,
+                    PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc;";
 
             var result = await connection.ExecuteAsync(sql, new 
             { 
@@ -316,7 +358,10 @@ public class StudentRepository : IStudentRepository
                 guardian.EncryptedPhone,
                 guardian.Occupation,
                 guardian.Email,
-                guardian.LineUserId
+                guardian.LineUserId,
+                guardian.PhotoFileName,
+                guardian.PhotoContentType,
+                guardian.PhotoUploadedAtUtc
             });
 
             if (result > 0)
@@ -329,4 +374,9 @@ public class StudentRepository : IStudentRepository
             return AppError.Internal($"Database error: {ex.Message}");
         }
     }
+}
+
+file sealed class TableColumnInfo
+{
+    public string Name { get; set; } = string.Empty;
 }

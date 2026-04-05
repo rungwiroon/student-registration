@@ -1,6 +1,6 @@
 # 🚀 Phase 3: Live Data API Integration & PDPA Masking
-**Current Status:** UI Dashboard (หน้าแรก, สมุดรายชื่อ, ติดต่อ) จัด Layout สมบูรณ์แล้ว
-**Next Focus:** นำข้อมูลจริงจากฐานข้อมูล SQLite ดึงขึ้นมาแสดงผลตามหลักความปลอดภัยส่วนบุคคล (PDPA)
+**Current Status:** Completed
+**Next Focus:** เดินหน้าต่อที่ phase ถัดไป เช่น secure photo upload, image sniffing และ frontend validation
 
 ---
 

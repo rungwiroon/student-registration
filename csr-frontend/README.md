@@ -1,5 +1,22 @@
-# Vue 3 + Vite
+# CSR Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## Development
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+```bash
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Registration architecture
+
+- `src/views/Register.vue` เป็นตัว orchestration ของหน้า register/edit profile
+- `src/composables/useRegistrationForm.js` ดูแล form state, profile loading, และ submit flow
+- `src/components/StudentPhotoUpload.vue` และ `src/components/GuardianPhotoUpload.vue` แยก UI upload รูปออกจากหน้า register
+- `src/services/registrationApi.js` ส่งข้อมูลแบบ `multipart/form-data` เพื่ออัปโหลดข้อมูลลงทะเบียนพร้อมรูปผ่าน backend
+- รูปเดิมถูกดึงผ่าน protected API แล้วแปลงเป็น blob URL ใน browser จึงไม่ต้องเปิด public static serving

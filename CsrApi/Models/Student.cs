@@ -15,5 +15,8 @@ public class Student
     public string? BloodType { get; set; }
     public string? DOB { get; set; }
     public string? EncryptedPhone { get; set; }
+    public string? PhotoFileName { get; set; }
+    public string? PhotoContentType { get; set; }
+    public DateTime? PhotoUploadedAtUtc { get; set; }
     public string Status { get; set; } = "Pending"; 
 }

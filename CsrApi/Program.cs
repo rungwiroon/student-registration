@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using CsrApi.Middleware;
 using CsrApi.Models;
 using CsrApi.Repositories;
@@ -21,8 +22,11 @@ builder.Services.AddHttpClient();
 // Register Custom Services
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddSingleton<IMaskingService, MaskingService>();
+builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection("PhotoStorage"));
+builder.Services.AddSingleton<IPhotoStorageService, PhotoStorageService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
+builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 
 // Configure SQLCipher provider for SQLite
 SQLitePCL.Batteries_V2.Init();
@@ -89,108 +93,93 @@ app.MapGet("/api/students/{id}", async (Guid id, IStudentRepository repo, IEncry
     );
 });
 
-app.MapPost("/api/register", async (RegistrationRequest request, HttpContext context, IStudentRepository repo, IEncryptionService encryption) =>
+app.MapPost("/api/register", async (HttpContext context, IRegistrationService requestServices) =>
 {
-    var lineUserId = context.Items["LineUserId"]?.ToString();
-    if (string.IsNullOrEmpty(lineUserId))
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
     {
         return Results.Unauthorized();
     }
 
-    var existingGuardian = await repo.GetGuardianByLineIdAsync(lineUserId);
-
-    var studentIdToUse = existingGuardian.Match(
-        Right: g => g.StudentId,
-        Left: _ => Guid.NewGuid()
-    );
-
-    var student = new Student
+    var formDataResult = await ReadRegistrationFormAsync(context.Request, context.RequestAborted);
+    if (formDataResult.IsLeft)
     {
-        Id = studentIdToUse,
-        StudentId = request.Student.StudentId,
-        OldRoom = request.Student.OldRoom,
-        OldNo = request.Student.OldNo,
-        NewRoom = request.Student.NewRoom,
-        NewNo = request.Student.NewNo,
-        Nickname = request.Student.Nickname,
-        BloodType = request.Student.BloodType,
-        DOB = request.Student.DOB,
-        EncryptedName = encryption.Encrypt(request.Student.Name),
-        EncryptedPhone = string.IsNullOrEmpty(request.Student.Phone) ? string.Empty : encryption.Encrypt(request.Student.Phone),
-        Status = "Pending"
-    };
-
-    var studentResult = existingGuardian.IsRight
-        ? await repo.UpdateStudentAsync(student)
-        : await repo.AddStudentAsync(student);
-
-    if (studentResult.IsLeft)
-    {
-        return studentResult.Match<IResult>(
+        return formDataResult.Match<IResult>(
             Right: _ => Results.Ok(),
-            Left: err => err.StatusCode == 400 ? Results.BadRequest(err.Message) : Results.StatusCode(err.StatusCode)
-        );
+            Left: ToErrorResult);
     }
 
-    var guardian = new Guardian
-    {
-        Id = Guid.NewGuid(),
-        StudentId = studentIdToUse,
-        RelationType = request.Guardian.RelationType,
-        Occupation = request.Guardian.Occupation,
-        Email = request.Guardian.Email,
-        LineUserId = lineUserId,
-        EncryptedName = encryption.Encrypt(request.Guardian.Name),
-        EncryptedPhone = string.IsNullOrEmpty(request.Guardian.Phone) ? string.Empty : encryption.Encrypt(request.Guardian.Phone)
-    };
+    var formData = formDataResult.Match(data => data, _ => null)!;
+    var result = await requestServices.UpsertRegistrationAsync(
+        formData.Registration,
+        lineUserId,
+        formData.StudentPhoto,
+        formData.GuardianPhoto,
+        context.RequestAborted);
 
-    var guardianResult = await repo.UpsertGuardianAsync(guardian);
-
-    return guardianResult.Match(
-        Right: _ => Results.Ok(new { Message = "Registration successful", StudentId = studentIdToUse }),
-        Left: err => err.StatusCode == 400 ? Results.BadRequest(err.Message) : Results.StatusCode(err.StatusCode)
-    );
+    return result.Match(
+        Right: studentId => Results.Ok(new { Message = "Registration successful", StudentId = studentId }),
+        Left: ToErrorResult);
 });
 
-app.MapGet("/api/me", async (HttpContext context, IStudentRepository repo, IEncryptionService encryption) =>
+app.MapGet("/api/me", async (HttpContext context, IRegistrationService requestServices) =>
 {
-    var lineUserId = context.Items["LineUserId"]?.ToString();
-    if (string.IsNullOrEmpty(lineUserId))
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
     {
         return Results.Unauthorized();
     }
 
-    var guardianResult = await repo.GetGuardianByLineIdAsync(lineUserId);
+    var result = await requestServices.GetMyProfileAsync(lineUserId, context.RequestAborted);
+    return result.Match(
+        Right: profile => Results.Ok(profile),
+        Left: ToErrorResult);
+});
 
-    return await guardianResult.Match(
-        Right: async g => 
-        {
-            var studentResult = await repo.GetStudentByIdAsync(g.StudentId);
-            return studentResult.Match(
-                Right: s => 
-                {
-                    return Results.Ok(new {
-                        Student = new {
-                            Id = s.Id,
-                            StudentId = s.StudentId,
-                            Name = encryption.Decrypt(s.EncryptedName),
-                            Room = string.IsNullOrEmpty(s.NewRoom) ? s.OldRoom : s.NewRoom,
-                            NewRoom = s.NewRoom,
-                            NewNo = s.NewNo,
-                            Phone = string.IsNullOrEmpty(s.EncryptedPhone) ? "" : encryption.Decrypt(s.EncryptedPhone)
-                        },
-                        Guardian = new {
-                            Name = string.IsNullOrEmpty(g.EncryptedName) ? "" : encryption.Decrypt(g.EncryptedName),
-                            Phone = string.IsNullOrEmpty(g.EncryptedPhone) ? "" : encryption.Decrypt(g.EncryptedPhone),
-                            RelationType = g.RelationType
-                        }
-                    });
-                },
-                Left: err => Results.NotFound(err.Message)
-            );
-        },
-        Left: err => Task.FromResult(Results.NotFound(err.Message))
-    );
+app.MapGet("/api/me/student-photo", async (HttpContext context, IRegistrationService requestServices) =>
+{
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await requestServices.GetStudentPhotoAsync(lineUserId, context.RequestAborted);
+    if (result.IsLeft)
+    {
+        return result.Match<IResult>(
+            Right: _ => Results.Ok(),
+            Left: ToErrorResult);
+    }
+
+    var photo = result.Match(
+        Right: data => data,
+        Left: _ => throw new InvalidOperationException("Student photo result was expected to be successful."));
+    context.Response.OnCompleted(() => photo.DisposeAsync().AsTask());
+    return Results.Stream(photo.Stream, photo.ContentType);
+});
+
+app.MapGet("/api/me/guardian-photo", async (HttpContext context, IRegistrationService requestServices) =>
+{
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await requestServices.GetGuardianPhotoAsync(lineUserId, context.RequestAborted);
+    if (result.IsLeft)
+    {
+        return result.Match<IResult>(
+            Right: _ => Results.Ok(),
+            Left: ToErrorResult);
+    }
+
+    var photo = result.Match(
+        Right: data => data,
+        Left: _ => throw new InvalidOperationException("Guardian photo result was expected to be successful."));
+    context.Response.OnCompleted(() => photo.DisposeAsync().AsTask());
+    return Results.Stream(photo.Stream, photo.ContentType);
 });
 
 app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
@@ -213,6 +202,55 @@ app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encr
 
 app.Run();
 
+static string? GetLineUserId(HttpContext context)
+{
+    return context.Items["LineUserId"]?.ToString();
+}
+
+static async Task<LanguageExt.Either<AppError, RegistrationFormData>> ReadRegistrationFormAsync(HttpRequest request, CancellationToken cancellationToken)
+{
+    if (!request.HasFormContentType)
+    {
+        return AppError.BadRequest("Registration requires multipart/form-data.");
+    }
+
+    var form = await request.ReadFormAsync(cancellationToken);
+    var payload = form["payload"].ToString();
+    if (string.IsNullOrWhiteSpace(payload))
+    {
+        return AppError.BadRequest("Registration payload is required.");
+    }
+
+    try
+    {
+        var registration = JsonSerializer.Deserialize<RegistrationRequest>(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        if (registration is null)
+        {
+            return AppError.BadRequest("Registration payload is invalid.");
+        }
+
+        return new RegistrationFormData(
+            registration,
+            form.Files.GetFile("studentPhoto"),
+            form.Files.GetFile("guardianPhoto"));
+    }
+    catch (JsonException ex)
+    {
+        return AppError.BadRequest($"Registration payload is invalid JSON: {ex.Message}");
+    }
+}
+
+static IResult ToErrorResult(AppError error)
+{
+    return error.StatusCode switch
+    {
+        StatusCodes.Status400BadRequest => Results.BadRequest(error.Message),
+        StatusCodes.Status401Unauthorized => Results.Unauthorized(),
+        StatusCodes.Status404NotFound => Results.NotFound(error.Message),
+        _ => Results.StatusCode(error.StatusCode)
+    };
+}
+
 // Request Dto
 public class StudentRequest 
 {
@@ -220,3 +258,5 @@ public class StudentRequest
     public string Name { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
 }
+
+public sealed record RegistrationFormData(RegistrationRequest Registration, IFormFile? StudentPhoto, IFormFile? GuardianPhoto);
