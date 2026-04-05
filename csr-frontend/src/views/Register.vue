@@ -1,5 +1,12 @@
 <template>
-  <div class="space-y-4">
+  <div>
+    <!-- Local Header just for Register -->
+    <header class="sticky top-0 bg-emerald-500 text-white p-4 shadow-md z-10 font-bold text-center flex items-center justify-center space-x-2">
+      <span class="text-xl">📋</span>
+      <span>ลงทะเบียนข้อมูล</span>
+    </header>
+
+    <main class="p-4 space-y-6">
     <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-500 text-center">ลงทะเบียนผู้ปกครองและนักเรียน</h1>
     
     <div v-if="!isReady" class="text-center text-gray-500 py-10 animate-pulse">
@@ -66,6 +73,7 @@
         <span v-else>ลงทะเบียนข้อมูลทันที</span>
       </button>
     </form>
+    </main>
   </div>
 </template>
 
