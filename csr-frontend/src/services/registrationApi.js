@@ -8,7 +8,9 @@ function toPayload(form) {
   return {
     student: {
       studentId: form.student.studentId || null,
-      name: form.student.name,
+      firstName: normalizeOptionalText(form.student.firstName),
+      lastName: normalizeOptionalText(form.student.lastName),
+      nickname: normalizeOptionalText(form.student.nickname),
       oldRoom: form.student.oldRoom || null,
       oldNo: form.student.oldNo || null,
       newRoom: form.student.newRoom || null,
@@ -17,13 +19,15 @@ function toPayload(form) {
       bloodType: normalizeOptionalText(form.student.bloodType),
       dob: normalizeOptionalText(form.student.dob)
     },
-    guardian: {
-      relationType: form.guardian.relationType,
-      name: form.guardian.name,
-      phone: form.guardian.phone,
-      occupation: normalizeOptionalText(form.guardian.occupation),
-      email: normalizeOptionalText(form.guardian.email)
-    }
+    guardians: form.guardians.map(g => ({
+      order: g.order,
+      relationType: g.relationType || null,
+      firstName: normalizeOptionalText(g.firstName),
+      lastName: normalizeOptionalText(g.lastName),
+      phone: normalizeOptionalText(g.phone),
+      occupation: normalizeOptionalText(g.occupation),
+      email: normalizeOptionalText(g.email)
+    }))
   };
 }
 
@@ -39,8 +43,12 @@ export async function submitRegistration(token, form, files) {
     formData.append('studentPhoto', files.studentPhoto);
   }
 
-  if (files.guardianPhoto) {
-    formData.append('guardianPhoto', files.guardianPhoto);
+  if (files.guardianPhoto1) {
+    formData.append('guardianPhoto1', files.guardianPhoto1);
+  }
+
+  if (files.guardianPhoto2) {
+    formData.append('guardianPhoto2', files.guardianPhoto2);
   }
 
   const response = await apiFetch('/api/register', token, {

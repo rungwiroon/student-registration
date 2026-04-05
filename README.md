@@ -46,8 +46,13 @@ docker compose -f docker-compose.dev.yml up --build
 - backend เก็บไฟล์ไว้ใน `CsrApi/App_Data/ProtectedUploads` และ **ไม่** เปิดเป็น public static files
 - การเรียกดูรูปใช้ endpoint ที่ต้องมี LINE access token:
   - `GET /api/me/student-photo`
-  - `GET /api/me/guardian-photo`
+  - `GET /api/me/guardian-photo/{guardianOrder}` (ระบุลำดับผู้ปกครอง 1 หรือ 2)
 - ตั้งค่าได้ผ่าน `PhotoStorage` ใน `CsrApi/appsettings.json`
+
+### **Introduction Document**
+- หน้า `/document` แสดงใบแนะนำตัวนักเรียนและผู้ปกครอง
+- Endpoint: `GET /api/me/introduction-document`
+- รองรับการพิมพ์และบันทึกเป็น PDF ผ่าน browser print function
 
 ### **Seed / test data**
 - development compose จะ seed ข้อมูลทดสอบให้เองทุกครั้งแบบ idempotent
@@ -90,9 +95,13 @@ docker compose -f docker-compose.dev.yml down
 | `OldNo` | INTEGER | - | เลขที่เดิม |
 | `NewRoom` | TEXT | - | ห้องใหม่ (ม.1/2) |
 | `NewNo` | INTEGER | - | เลขที่ใหม่ |
-| `EncName` | TEXT | NOT NULL | ชื่อ-นามสกุลจริง (**AES-256**) |
+| `EncName` | TEXT | NOT NULL | ชื่อ-นามสกุลจริง (**AES-256**) (legacy) |
+| `EncFirstName` | TEXT | - | ชื่อจริง (**AES-256**) |
+| `EncLastName` | TEXT | - | นามสกุล (**AES-256**) |
 | `Nickname` | TEXT | - | ชื่อเล่น |
-| `BloodType` | TEXT | - | กรุ๊ปเลือด (**Encrypted**) |
+| `EncPhone` | TEXT | - | เบอร์โทรศัพท์ (**AES-256**) |
+| `BloodType` | TEXT | - | กรุ๊ปเลือด |
+| `DOB` | TEXT | - | วันเกิด |
 | `PhotoFileName` | TEXT | - | ชื่อไฟล์รูปที่เก็บใน protected storage |
 | `PhotoContentType` | TEXT | - | MIME type ของรูป |
 | `PhotoUploadedAtUtc` | TEXT | - | เวลาอัปโหลดรูป |
@@ -103,13 +112,20 @@ docker compose -f docker-compose.dev.yml down
 | :--- | :--- | :--- | :--- |
 | `Id` | GUID | PRIMARY KEY | - |
 | `StudentId` | GUID | FK | เชื่อมกับ Students |
+| `GuardianOrder` | INTEGER | - | ลำดับผู้ปกครอง (1 = หลัก, 2 = รอง) |
 | `Relation` | TEXT | - | บิดา / มารดา / ผู้ปกครอง |
-| `EncName` | TEXT | - | ชื่อ-นามสกุล (**AES-256**) |
+| `EncName` | TEXT | - | ชื่อ-นามสกุล (**AES-256**) (legacy) |
+| `EncFirstName` | TEXT | - | ชื่อ (**AES-256**) |
+| `EncLastName` | TEXT | - | นามสกุล (**AES-256**) |
 | `EncPhone` | TEXT | - | เบอร์โทรศัพท์ (**AES-256**) |
-| `LineUserId` | TEXT | UNIQUE | LINE ID จาก LIFF สำหรับ Login |
+| `Occupation` | TEXT | - | อาชีพ |
+| `Email` | TEXT | - | อีเมล |
+| `LineUserId` | TEXT | - | LINE ID จาก LIFF สำหรับ Login (เฉพาะ guardian หลัก) |
 | `PhotoFileName` | TEXT | - | ชื่อไฟล์รูปที่เก็บใน protected storage |
 | `PhotoContentType` | TEXT | - | MIME type ของรูป |
 | `PhotoUploadedAtUtc` | TEXT | - | เวลาอัปโหลดรูป |
+
+**Note:** ระบบรองรับผู้ปกครองได้สูงสุด 2 คนต่อนักเรียน โดย `GuardianOrder` ใช้ระบุลำดับ (1 = หลัก, 2 = รอง) และ `LineUserId` เชื่อมกับ guardian หลักเท่านั้น
 
 ### **Table: `Committees`**
 | Column | Type | Constraints | Logic / Security |
@@ -139,6 +155,7 @@ docker compose -f docker-compose.dev.yml down
 - **Home:** `Dashboard.vue` (สรุปสถานะนักเรียนรายบุคคล)
 - **Directory:** `ClassList.vue` (รายชื่อเพื่อนในห้องแบบ Masked Name)
 - **Contacts:** `CommitteeList.vue` (เบอร์ติดต่อครูและกรรมการ พร้อมปุ่ม Click-to-Call)
+- **Document:** `IntroductionDocumentView.vue` (ใบแนะนำตัวนักเรียนและผู้ปกครอง พร้อมปุ่มพิมพ์/บันทึก PDF)
 
 ### **Frontend Logic**
 - หน้า frontend เรียก API ผ่าน `/api/*`

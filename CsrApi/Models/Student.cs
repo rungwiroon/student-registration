@@ -10,7 +10,9 @@ public class Student
     public int? OldNo { get; set; }
     public string? NewRoom { get; set; }
     public int? NewNo { get; set; }
-    public string EncryptedName { get; set; } = string.Empty;
+    public string EncryptedName { get; set; } = string.Empty; // Legacy: kept for migration compatibility
+    public string? EncryptedFirstName { get; set; }
+    public string? EncryptedLastName { get; set; }
     public string? Nickname { get; set; }
     public string? BloodType { get; set; }
     public string? DOB { get; set; }

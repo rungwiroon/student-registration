@@ -24,19 +24,47 @@
             <input v-model="form.student.studentId" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="เว้นว่างได้ถ้าโรงเรียนยังไม่ออกให้" />
           </div>
           
-          <div>
-            <label class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล (จริง)</label>
-            <input v-model="form.student.name" type="text" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="เด็กชาย..." />
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">ชื่อ</label>
+              <input v-model="form.student.firstName" type="text" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="เด็กชาย..." />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">นามสกุล</label>
+              <input v-model="form.student.lastName" type="text" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="นามสกุล" />
+            </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700">เลขที่ (ใหม่)</label>
+            <label class="block text-sm font-medium text-gray-700">ชื่อเล่น</label>
+            <input v-model="form.student.nickname" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="ชื่อเล่น" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">เลขที่</label>
             <input v-model.number="form.student.newNo" type="number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="เว้นว่างได้ถ้ายังไม่ทราบ" />
           </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์นักเรียน (ถ้ามี)</label>
             <input v-model="form.student.phone" type="tel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="08..." />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">กรุ๊ปเลือด</label>
+              <select v-model="form.student.bloodType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border h-[42px]">
+                <option value="">-- เลือก --</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="O">O</option>
+                <option value="AB">AB</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">วันเกิด</label>
+              <input v-model="form.student.dob" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border h-[42px]" />
+            </div>
           </div>
         </div>
       </section>
@@ -48,19 +76,25 @@
         @update:model-value="setStudentPhoto"
       />
 
-      <!-- Guardian Info -->
+      <!-- Guardian 1 Info (Primary) -->
       <section class="bg-emerald-50 p-4 rounded-xl shadow-sm border border-emerald-100">
-        <h2 class="font-bold text-emerald-800 mb-3 border-b border-emerald-200 pb-2">🛡️ ข้อมูลผู้ปกครอง (คุณ)</h2>
+        <h2 class="font-bold text-emerald-800 mb-3 border-b border-emerald-200 pb-2">🛡️ ข้อมูลผู้ปกครองคนที่ 1 (คุณ)</h2>
         
         <div class="space-y-3">
-          <div>
-            <label class="block text-sm font-medium text-emerald-700">ชื่อ-นามสกุล (ผู้ปกครอง)</label>
-            <input v-model="form.guardian.name" type="text" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="นาย..." />
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-emerald-700">ชื่อ</label>
+              <input v-model="form.guardians[0].firstName" type="text" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="นาย..." />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-emerald-700">นามสกุล</label>
+              <input v-model="form.guardians[0].lastName" type="text" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="นามสกุล" />
+            </div>
           </div>
           
           <div>
             <label class="block text-sm font-medium text-emerald-700">ความสัมพันธ์</label>
-            <select v-model="form.guardian.relationType" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border">
+            <select v-model="form.guardians[0].relationType" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border">
               <option value="" disabled>-- เลือก --</option>
               <option value="Father">บิดา</option>
               <option value="Mother">มารดา</option>
@@ -70,26 +104,76 @@
           
           <div>
             <label class="block text-sm font-medium text-emerald-700">เบอร์โทรศัพท์ติดต่อ</label>
-            <input v-model="form.guardian.phone" type="tel" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="08..." />
+            <input v-model="form.guardians[0].phone" type="tel" required class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="08..." />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-emerald-700">อาชีพ</label>
-            <input v-model="form.guardian.occupation" type="text" class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="ข้าราชการ, พนักงานบริษัท..." />
+            <input v-model="form.guardians[0].occupation" type="text" class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="ข้าราชการ, พนักงานบริษัท..." />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-emerald-700">อีเมล</label>
-            <input v-model="form.guardian.email" type="email" class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="name@example.com" />
+            <input v-model="form.guardians[0].email" type="email" class="mt-1 block w-full rounded-md border-emerald-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition p-2 border" placeholder="name@example.com" />
           </div>
         </div>
       </section>
 
       <GuardianPhotoUpload
-        :model-value="photos.guardianPhoto"
-        :existing-photo-url="existingPhotoUrls.guardian"
+        :model-value="photos.guardianPhoto1"
+        :existing-photo-url="existingPhotoUrls.guardian1"
         :access-token="accessToken"
-        @update:model-value="setGuardianPhoto"
+        @update:model-value="(file) => setGuardianPhoto(file, 1)"
+      />
+
+      <!-- Guardian 2 Info (Secondary) -->
+      <section class="bg-teal-50 p-4 rounded-xl shadow-sm border border-teal-100">
+        <h2 class="font-bold text-teal-800 mb-3 border-b border-teal-200 pb-2">🛡️ ข้อมูลผู้ปกครองคนที่ 2 (ถ้ามี)</h2>
+        
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-teal-700">ชื่อ</label>
+              <input v-model="form.guardians[1].firstName" type="text" class="mt-1 block w-full rounded-md border-teal-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 transition p-2 border" placeholder="นาย..." />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-teal-700">นามสกุล</label>
+              <input v-model="form.guardians[1].lastName" type="text" class="mt-1 block w-full rounded-md border-teal-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 transition p-2 border" placeholder="นามสกุล" />
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-teal-700">ความสัมพันธ์</label>
+            <select v-model="form.guardians[1].relationType" class="mt-1 block w-full rounded-md border-teal-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 transition p-2 border">
+              <option value="">-- เลือก (ถ้ามี) --</option>
+              <option value="Father">บิดา</option>
+              <option value="Mother">มารดา</option>
+              <option value="Other">ผู้ปกครองอื่นๆ</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-teal-700">เบอร์โทรศัพท์ติดต่อ</label>
+            <input v-model="form.guardians[1].phone" type="tel" class="mt-1 block w-full rounded-md border-teal-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 transition p-2 border" placeholder="08..." />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-teal-700">อาชีพ</label>
+            <input v-model="form.guardians[1].occupation" type="text" class="mt-1 block w-full rounded-md border-teal-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 transition p-2 border" placeholder="ข้าราชการ, พนักงานบริษัท..." />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-teal-700">อีเมล</label>
+            <input v-model="form.guardians[1].email" type="email" class="mt-1 block w-full rounded-md border-teal-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 transition p-2 border" placeholder="name@example.com" />
+          </div>
+        </div>
+      </section>
+
+      <GuardianPhotoUpload
+        :model-value="photos.guardianPhoto2"
+        :existing-photo-url="existingPhotoUrls.guardian2"
+        :access-token="accessToken"
+        @update:model-value="(file) => setGuardianPhoto(file, 2)"
       />
 
       <div v-if="isProfileLoading" class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">

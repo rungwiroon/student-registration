@@ -1,30 +1,27 @@
 namespace CsrApi.Models;
 
-public sealed class ProfileResponse
+public sealed class IntroductionDocumentResponse
 {
-    public StudentProfileResponse Student { get; set; } = new();
-    public List<GuardianProfileResponse> Guardians { get; set; } = new();
+    public StudentDocumentData Student { get; set; } = new();
+    public List<GuardianDocumentData> Guardians { get; set; } = new();
 }
 
-public sealed class StudentProfileResponse
+public sealed class StudentDocumentData
 {
-    public Guid Id { get; set; }
     public string? StudentId { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? Nickname { get; set; }
     public string? Room { get; set; }
-    public string? NewRoom { get; set; }
     public int? NewNo { get; set; }
     public string? Phone { get; set; }
     public string? BloodType { get; set; }
     public string? DOB { get; set; }
-    public string? LineUserId { get; set; }
     public bool HasPhoto { get; set; }
     public string? PhotoUrl { get; set; }
 }
 
-public sealed class GuardianProfileResponse
+public sealed class GuardianDocumentData
 {
     public int Order { get; set; } = 1;
     public string? FirstName { get; set; }

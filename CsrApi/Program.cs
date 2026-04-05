@@ -114,7 +114,7 @@ app.MapPost("/api/register", async (HttpContext context, IRegistrationService re
         formData.Registration,
         lineUserId,
         formData.StudentPhoto,
-        formData.GuardianPhoto,
+        formData.GuardianPhotos,
         context.RequestAborted);
 
     return result.Match(
@@ -159,7 +159,7 @@ app.MapGet("/api/me/student-photo", async (HttpContext context, IRegistrationSer
     return Results.Stream(photo.Stream, photo.ContentType);
 });
 
-app.MapGet("/api/me/guardian-photo", async (HttpContext context, IRegistrationService requestServices) =>
+app.MapGet("/api/me/guardian-photo/{guardianOrder:int}", async (HttpContext context, IRegistrationService requestServices, int guardianOrder) =>
 {
     var lineUserId = GetLineUserId(context);
     if (lineUserId is null)
@@ -167,7 +167,7 @@ app.MapGet("/api/me/guardian-photo", async (HttpContext context, IRegistrationSe
         return Results.Unauthorized();
     }
 
-    var result = await requestServices.GetGuardianPhotoAsync(lineUserId, context.RequestAborted);
+    var result = await requestServices.GetGuardianPhotoAsync(lineUserId, guardianOrder, context.RequestAborted);
     if (result.IsLeft)
     {
         return result.Match<IResult>(
@@ -180,6 +180,20 @@ app.MapGet("/api/me/guardian-photo", async (HttpContext context, IRegistrationSe
         Left: _ => throw new InvalidOperationException("Guardian photo result was expected to be successful."));
     context.Response.OnCompleted(() => photo.DisposeAsync().AsTask());
     return Results.Stream(photo.Stream, photo.ContentType);
+});
+
+app.MapGet("/api/me/introduction-document", async (HttpContext context, IRegistrationService requestServices) =>
+{
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await requestServices.GetIntroductionDocumentAsync(lineUserId, context.RequestAborted);
+    return result.Match(
+        Right: document => Results.Ok(document),
+        Left: ToErrorResult);
 });
 
 app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
@@ -229,10 +243,28 @@ static async Task<LanguageExt.Either<AppError, RegistrationFormData>> ReadRegist
             return AppError.BadRequest("Registration payload is invalid.");
         }
 
+        // Collect guardian photos (guardianPhoto1, guardianPhoto2, etc.)
+        var guardianPhotos = new List<IFormFile>();
+        for (var i = 1; i <= 2; i++)
+        {
+            var file = form.Files.GetFile($"guardianPhoto{i}");
+            if (file is not null)
+            {
+                guardianPhotos.Add(file);
+            }
+        }
+        
+        // Also check for generic "guardianPhoto" for backward compatibility
+        var legacyFile = form.Files.GetFile("guardianPhoto");
+        if (legacyFile is not null && guardianPhotos.Count == 0)
+        {
+            guardianPhotos.Add(legacyFile);
+        }
+
         return new RegistrationFormData(
             registration,
             form.Files.GetFile("studentPhoto"),
-            form.Files.GetFile("guardianPhoto"));
+            guardianPhotos);
     }
     catch (JsonException ex)
     {
@@ -259,4 +291,4 @@ public class StudentRequest
     public string Phone { get; set; } = string.Empty;
 }
 
-public sealed record RegistrationFormData(RegistrationRequest Registration, IFormFile? StudentPhoto, IFormFile? GuardianPhoto);
+public sealed record RegistrationFormData(RegistrationRequest Registration, IFormFile? StudentPhoto, List<IFormFile> GuardianPhotos);

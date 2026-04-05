@@ -15,10 +15,12 @@ public interface IStudentRepository
 {
     Task<Either<AppError, Student>> GetStudentByIdAsync(Guid id);
     Task<Either<AppError, Guardian>> GetGuardianByLineIdAsync(string lineUserId);
+    Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansByStudentIdAsync(Guid studentId);
     Task<Either<AppError, Unit>> AddStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpsertStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpdateStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpsertGuardianAsync(Guardian guardian);
+    Task<Either<AppError, Unit>> UpsertGuardiansAsync(IEnumerable<Guardian> guardians);
     Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync();
     Task InitializeDatabaseAsync();
 }
@@ -57,6 +59,8 @@ public class StudentRepository : IStudentRepository
                 NewRoom TEXT,
                 NewNo INTEGER,
                 EncryptedName TEXT NOT NULL,
+                EncryptedFirstName TEXT,
+                EncryptedLastName TEXT,
                 Nickname TEXT,
                 BloodType TEXT,
                 DOB TEXT,
@@ -71,11 +75,14 @@ public class StudentRepository : IStudentRepository
                 Id TEXT PRIMARY KEY,
                 StudentId TEXT,
                 RelationType TEXT,
+                GuardianOrder INTEGER DEFAULT 1,
                 EncryptedName TEXT,
+                EncryptedFirstName TEXT,
+                EncryptedLastName TEXT,
                 EncryptedPhone TEXT,
                 Occupation TEXT,
                 Email TEXT,
-                LineUserId TEXT UNIQUE,
+                LineUserId TEXT,
                 PhotoFileName TEXT,
                 PhotoContentType TEXT,
                 PhotoUploadedAtUtc TEXT,
@@ -94,9 +101,17 @@ public class StudentRepository : IStudentRepository
         await EnsureColumnAsync(connection, "Students", "PhotoFileName", "TEXT");
         await EnsureColumnAsync(connection, "Students", "PhotoContentType", "TEXT");
         await EnsureColumnAsync(connection, "Students", "PhotoUploadedAtUtc", "TEXT");
+        await EnsureColumnAsync(connection, "Students", "EncryptedFirstName", "TEXT");
+        await EnsureColumnAsync(connection, "Students", "EncryptedLastName", "TEXT");
         await EnsureColumnAsync(connection, "Guardians", "PhotoFileName", "TEXT");
         await EnsureColumnAsync(connection, "Guardians", "PhotoContentType", "TEXT");
         await EnsureColumnAsync(connection, "Guardians", "PhotoUploadedAtUtc", "TEXT");
+        await EnsureColumnAsync(connection, "Guardians", "GuardianOrder", "INTEGER DEFAULT 1");
+        await EnsureColumnAsync(connection, "Guardians", "EncryptedFirstName", "TEXT");
+        await EnsureColumnAsync(connection, "Guardians", "EncryptedLastName", "TEXT");
+        
+        // Create index after ensuring columns exist
+        await connection.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_Guardians_StudentId_GuardianOrder ON Guardians(StudentId, GuardianOrder);");
     }
 
     private static async Task EnsureColumnAsync(SqliteConnection connection, string tableName, string columnName, string columnDefinition)
@@ -174,12 +189,12 @@ public class StudentRepository : IStudentRepository
             var sql = @"
                 INSERT INTO Students (
                     Id, StudentId, OldRoom, OldNo, NewRoom, NewNo, 
-                    EncryptedName, Nickname, BloodType, DOB, 
+                    EncryptedName, EncryptedFirstName, EncryptedLastName, Nickname, BloodType, DOB, 
                     EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status
                 ) 
                 VALUES (
                     @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo, 
-                    @EncryptedName, @Nickname, @BloodType, @DOB, 
+                    @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @Nickname, @BloodType, @DOB, 
                     @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status
                 )";
 
@@ -192,6 +207,8 @@ public class StudentRepository : IStudentRepository
                 student.NewRoom,
                 student.NewNo,
                 student.EncryptedName,
+                student.EncryptedFirstName,
+                student.EncryptedLastName,
                 student.Nickname,
                 student.BloodType,
                 student.DOB,
@@ -221,11 +238,11 @@ public class StudentRepository : IStudentRepository
             var sql = @"
                 INSERT INTO Students (
                     Id, StudentId, OldRoom, OldNo, NewRoom, NewNo,
-                    EncryptedName, Nickname, BloodType, DOB,
+                    EncryptedName, EncryptedFirstName, EncryptedLastName, Nickname, BloodType, DOB,
                     EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status
                 ) VALUES (
                     @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo,
-                    @EncryptedName, @Nickname, @BloodType, @DOB,
+                    @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @Nickname, @BloodType, @DOB,
                     @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status
                 )
                 ON CONFLICT(Id) DO UPDATE SET
@@ -235,6 +252,8 @@ public class StudentRepository : IStudentRepository
                     NewRoom = excluded.NewRoom,
                     NewNo = excluded.NewNo,
                     EncryptedName = excluded.EncryptedName,
+                    EncryptedFirstName = excluded.EncryptedFirstName,
+                    EncryptedLastName = excluded.EncryptedLastName,
                     Nickname = excluded.Nickname,
                     BloodType = excluded.BloodType,
                     DOB = excluded.DOB,
@@ -253,6 +272,8 @@ public class StudentRepository : IStudentRepository
                 student.NewRoom,
                 student.NewNo,
                 student.EncryptedName,
+                student.EncryptedFirstName,
+                student.EncryptedLastName,
                 student.Nickname,
                 student.BloodType,
                 student.DOB,
@@ -287,6 +308,8 @@ public class StudentRepository : IStudentRepository
                     NewRoom = @NewRoom,
                     NewNo = @NewNo,
                     EncryptedName = @EncryptedName,
+                    EncryptedFirstName = @EncryptedFirstName,
+                    EncryptedLastName = @EncryptedLastName,
                     Nickname = @Nickname,
                     BloodType = @BloodType,
                     DOB = @DOB,
@@ -306,6 +329,8 @@ public class StudentRepository : IStudentRepository
                 student.NewRoom,
                 student.NewNo,
                 student.EncryptedName,
+                student.EncryptedFirstName,
+                student.EncryptedLastName,
                 student.Nickname,
                 student.BloodType,
                 student.DOB,
@@ -334,17 +359,21 @@ public class StudentRepository : IStudentRepository
             using var connection = GetConnection();
             var sql = @"
                 INSERT INTO Guardians (
-                    Id, StudentId, RelationType, EncryptedName, EncryptedPhone, Occupation, Email, LineUserId, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
+                    Id, StudentId, RelationType, GuardianOrder, EncryptedName, EncryptedFirstName, EncryptedLastName, EncryptedPhone, Occupation, Email, LineUserId, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
                 ) VALUES (
-                    @Id, @StudentId, @RelationType, @EncryptedName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
+                    @Id, @StudentId, @RelationType, @GuardianOrder, @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
                 )
-                ON CONFLICT(LineUserId) DO UPDATE SET
+                ON CONFLICT(Id) DO UPDATE SET
                     RelationType = excluded.RelationType,
+                    GuardianOrder = excluded.GuardianOrder,
                     StudentId = excluded.StudentId,
                     EncryptedName = excluded.EncryptedName,
+                    EncryptedFirstName = excluded.EncryptedFirstName,
+                    EncryptedLastName = excluded.EncryptedLastName,
                     EncryptedPhone = excluded.EncryptedPhone,
                     Occupation = excluded.Occupation,
                     Email = excluded.Email,
+                    LineUserId = excluded.LineUserId,
                     PhotoFileName = excluded.PhotoFileName,
                     PhotoContentType = excluded.PhotoContentType,
                     PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc;";
@@ -354,7 +383,10 @@ public class StudentRepository : IStudentRepository
                 Id = guardian.Id.ToString(),
                 StudentId = guardian.StudentId.ToString(),
                 guardian.RelationType,
+                guardian.GuardianOrder,
                 guardian.EncryptedName,
+                guardian.EncryptedFirstName,
+                guardian.EncryptedLastName,
                 guardian.EncryptedPhone,
                 guardian.Occupation,
                 guardian.Email,
@@ -368,6 +400,81 @@ public class StudentRepository : IStudentRepository
                 return Unit.Default;
             
             return AppError.Internal("Failed to upsert guardian.");
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansByStudentIdAsync(Guid studentId)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var guardians = await connection.QueryAsync<Guardian>(
+                "SELECT * FROM Guardians WHERE StudentId = @StudentId ORDER BY GuardianOrder ASC",
+                new { StudentId = studentId.ToString() });
+            return guardians.ToList();
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, Unit>> UpsertGuardiansAsync(IEnumerable<Guardian> guardians)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            await connection.OpenAsync();
+            using var transaction = await connection.BeginTransactionAsync();
+
+            foreach (var guardian in guardians)
+            {
+                var sql = @"
+                    INSERT INTO Guardians (
+                        Id, StudentId, RelationType, GuardianOrder, EncryptedName, EncryptedFirstName, EncryptedLastName, EncryptedPhone, Occupation, Email, LineUserId, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
+                    ) VALUES (
+                        @Id, @StudentId, @RelationType, @GuardianOrder, @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
+                    )
+                    ON CONFLICT(Id) DO UPDATE SET
+                        RelationType = excluded.RelationType,
+                        GuardianOrder = excluded.GuardianOrder,
+                        StudentId = excluded.StudentId,
+                        EncryptedName = excluded.EncryptedName,
+                        EncryptedFirstName = excluded.EncryptedFirstName,
+                        EncryptedLastName = excluded.EncryptedLastName,
+                        EncryptedPhone = excluded.EncryptedPhone,
+                        Occupation = excluded.Occupation,
+                        Email = excluded.Email,
+                        LineUserId = excluded.LineUserId,
+                        PhotoFileName = excluded.PhotoFileName,
+                        PhotoContentType = excluded.PhotoContentType,
+                        PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc;";
+
+                await connection.ExecuteAsync(sql, new
+                {
+                    Id = guardian.Id.ToString(),
+                    StudentId = guardian.StudentId.ToString(),
+                    guardian.RelationType,
+                    guardian.GuardianOrder,
+                    guardian.EncryptedName,
+                    guardian.EncryptedFirstName,
+                    guardian.EncryptedLastName,
+                    guardian.EncryptedPhone,
+                    guardian.Occupation,
+                    guardian.Email,
+                    guardian.LineUserId,
+                    guardian.PhotoFileName,
+                    guardian.PhotoContentType,
+                    guardian.PhotoUploadedAtUtc
+                }, transaction);
+            }
+
+            await transaction.CommitAsync();
+            return Unit.Default;
         }
         catch (Exception ex)
         {

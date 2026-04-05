@@ -13,6 +13,11 @@ const routes = [
     component: () => import('../views/Register.vue')
   },
   {
+    path: '/document',
+    name: 'IntroductionDocument',
+    component: () => import('../views/IntroductionDocumentView.vue')
+  },
+  {
     path: '/',
     component: MainLayout,
     redirect: '/dashboard',

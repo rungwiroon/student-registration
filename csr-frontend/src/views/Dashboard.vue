@@ -13,7 +13,7 @@
       <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center text-3xl mb-3 shadow-md z-10 relative">
         👦🏻
       </div>
-      <h1 class="text-2xl font-bold relative z-10">{{ studentData.name }}</h1>
+      <h1 class="text-2xl font-bold relative z-10">{{ studentName }}</h1>
       <p class="opacity-90 mt-1 relative z-10 border-t border-emerald-400 pt-2 border-opacity-50 inline-block px-4">
         ห้อง {{ studentData.room || 'ยังไม่ระบุ' }} &nbsp; | &nbsp; รหัส: <span class="font-mono text-emerald-100">{{ studentData.studentId || 'รอประกาศ' }}</span>
       </p>
@@ -45,7 +45,7 @@
             </div>
             <div>
               <p class="text-xs text-gray-400">ผู้ปกครอง</p>
-              <p class="font-medium text-gray-800">{{ guardianData.name }} ({{ formatRelation(guardianData.relationType) }})</p>
+              <p class="font-medium text-gray-800">{{ guardianName }} ({{ formatRelation(guardianData?.relationType) }})</p>
             </div>
           </div>
         </div>
@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 
@@ -72,6 +72,18 @@ const { initLiff, getAccessToken } = useLiff();
 const isLoading = ref(true);
 const studentData = ref(null);
 const guardianData = ref(null);
+
+const studentName = computed(() => {
+  if (!studentData.value) return '-';
+  const parts = [studentData.value.firstName, studentData.value.lastName].filter(Boolean);
+  return parts.length > 0 ? parts.join(' ') : '-';
+});
+
+const guardianName = computed(() => {
+  if (!guardianData.value) return '-';
+  const parts = [guardianData.value.firstName, guardianData.value.lastName].filter(Boolean);
+  return parts.length > 0 ? parts.join(' ') : '-';
+});
 
 const formatRelation = (rel) => {
   if (rel === 'Father') return 'บิดา';
@@ -98,7 +110,8 @@ onMounted(async () => {
     if (response.ok) {
       const data = await response.json();
       studentData.value = data.student;
-      guardianData.value = data.guardian;
+      // Get primary guardian (first in array)
+      guardianData.value = data.guardians?.[0] || null;
     } else if (response.status === 401 || response.status === 404) {
       // If not registered or unauthorized
       router.push('/register');
