@@ -1,0 +1,6 @@
+@CsrApi_HostAddress = http://localhost:5142
+
+GET {{CsrApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
