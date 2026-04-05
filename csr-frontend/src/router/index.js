@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '../components/MainLayout.vue'
+import BackofficeLayout from '../components/BackofficeLayout.vue'
 
 const routes = [
   {
@@ -36,6 +37,28 @@ const routes = [
         path: 'contacts',
         name: 'Contacts',
         component: () => import('../views/Contacts.vue')
+      }
+    ]
+  },
+  {
+    path: '/backoffice',
+    component: BackofficeLayout,
+    redirect: '/backoffice/dashboard',
+    children: [
+      {
+        path: 'dashboard',
+        name: 'BackofficeDashboard',
+        component: () => import('../views/backoffice/DashboardView.vue')
+      },
+      {
+        path: 'students',
+        name: 'BackofficeStudentList',
+        component: () => import('../views/backoffice/StudentListView.vue')
+      },
+      {
+        path: 'students/:id',
+        name: 'BackofficeStudentDetail',
+        component: () => import('../views/backoffice/StudentDetailView.vue')
       }
     ]
   }

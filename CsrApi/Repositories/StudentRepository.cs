@@ -109,6 +109,7 @@ public class StudentRepository : IStudentRepository
         await EnsureColumnAsync(connection, "Guardians", "GuardianOrder", "INTEGER DEFAULT 1");
         await EnsureColumnAsync(connection, "Guardians", "EncryptedFirstName", "TEXT");
         await EnsureColumnAsync(connection, "Guardians", "EncryptedLastName", "TEXT");
+        await EnsureColumnAsync(connection, "Students", "InternalNote", "TEXT");
         
         // Create index after ensuring columns exist
         await connection.ExecuteAsync("CREATE INDEX IF NOT EXISTS IX_Guardians_StudentId_GuardianOrder ON Guardians(StudentId, GuardianOrder);");
@@ -190,12 +191,12 @@ public class StudentRepository : IStudentRepository
                 INSERT INTO Students (
                     Id, StudentId, OldRoom, OldNo, NewRoom, NewNo, 
                     EncryptedName, EncryptedFirstName, EncryptedLastName, Nickname, BloodType, DOB, 
-                    EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status
+                    EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status, InternalNote
                 ) 
                 VALUES (
                     @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo, 
                     @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @Nickname, @BloodType, @DOB, 
-                    @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status
+                    @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status, @InternalNote
                 )";
 
             var result = await connection.ExecuteAsync(sql, new 
@@ -216,7 +217,8 @@ public class StudentRepository : IStudentRepository
                 student.PhotoFileName,
                 student.PhotoContentType,
                 student.PhotoUploadedAtUtc,
-                student.Status
+                student.Status,
+                student.InternalNote
             });
 
             if (result > 0)
@@ -239,11 +241,11 @@ public class StudentRepository : IStudentRepository
                 INSERT INTO Students (
                     Id, StudentId, OldRoom, OldNo, NewRoom, NewNo,
                     EncryptedName, EncryptedFirstName, EncryptedLastName, Nickname, BloodType, DOB,
-                    EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status
+                    EncryptedPhone, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc, Status, InternalNote
                 ) VALUES (
                     @Id, @StudentId, @OldRoom, @OldNo, @NewRoom, @NewNo,
                     @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @Nickname, @BloodType, @DOB,
-                    @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status
+                    @EncryptedPhone, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc, @Status, @InternalNote
                 )
                 ON CONFLICT(Id) DO UPDATE SET
                     StudentId = excluded.StudentId,
@@ -261,7 +263,8 @@ public class StudentRepository : IStudentRepository
                     PhotoFileName = excluded.PhotoFileName,
                     PhotoContentType = excluded.PhotoContentType,
                     PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc,
-                    Status = excluded.Status;";
+                    Status = excluded.Status,
+                    InternalNote = excluded.InternalNote;";
 
             var result = await connection.ExecuteAsync(sql, new
             {
@@ -281,7 +284,8 @@ public class StudentRepository : IStudentRepository
                 student.PhotoFileName,
                 student.PhotoContentType,
                 student.PhotoUploadedAtUtc,
-                student.Status
+                student.Status,
+                student.InternalNote
             });
 
             if (result > 0)
@@ -317,7 +321,8 @@ public class StudentRepository : IStudentRepository
                     PhotoFileName = @PhotoFileName,
                     PhotoContentType = @PhotoContentType,
                     PhotoUploadedAtUtc = @PhotoUploadedAtUtc,
-                    Status = @Status
+                    Status = @Status,
+                    InternalNote = @InternalNote
                 WHERE Id = @Id";
 
             var result = await connection.ExecuteAsync(sql, new 
@@ -338,7 +343,8 @@ public class StudentRepository : IStudentRepository
                 student.PhotoFileName,
                 student.PhotoContentType,
                 student.PhotoUploadedAtUtc,
-                student.Status
+                student.Status,
+                student.InternalNote
             });
 
             if (result > 0)

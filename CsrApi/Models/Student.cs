@@ -21,4 +21,5 @@ public class Student
     public string? PhotoContentType { get; set; }
     public DateTime? PhotoUploadedAtUtc { get; set; }
     public string Status { get; set; } = "Pending"; 
+    public string? InternalNote { get; set; }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json;
+using CsrApi;
 using CsrApi.Middleware;
 using CsrApi.Models;
 using CsrApi.Repositories;
@@ -25,6 +26,7 @@ builder.Services.AddSingleton<IMaskingService, MaskingService>();
 builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection("PhotoStorage"));
 builder.Services.AddSingleton<IPhotoStorageService, PhotoStorageService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 
@@ -36,9 +38,11 @@ var app = builder.Build();
 // Initialize DB (Simple script on startup)
 using (var scope = app.Services.CreateScope())
 {
+    var staffRepo = scope.ServiceProvider.GetRequiredService<IStaffRepository>();
     var repo = scope.ServiceProvider.GetRequiredService<IStudentRepository>();
     var seeder = scope.ServiceProvider.GetRequiredService<IDevelopmentDataSeeder>();
     await repo.InitializeDatabaseAsync();
+    await staffRepo.InitializeDatabaseAsync();
     await seeder.SeedAsync();
 }
 
@@ -56,6 +60,8 @@ if (builder.Configuration.GetValue<bool>("Http:UseHttpsRedirection"))
 
 // Add LINE LIFF Auth Middleware
 app.UseMiddleware<LiffAuthMiddleware>();
+
+app.MapBackofficeEndpoints();
 
 // Minimal API Endpoints
 app.MapPost("/api/students", async (StudentRequest request, IStudentRepository repo, IEncryptionService encryption) =>

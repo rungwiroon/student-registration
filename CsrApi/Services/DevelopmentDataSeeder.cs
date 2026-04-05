@@ -23,17 +23,20 @@ public sealed class DevelopmentDataSeeder : IDevelopmentDataSeeder
     private readonly IHostEnvironment _environment;
     private readonly IEncryptionService _encryptionService;
     private readonly IStudentRepository _studentRepository;
+    private readonly IStaffRepository _staffRepository;
 
     public DevelopmentDataSeeder(
         IConfiguration configuration,
         IHostEnvironment environment,
         IEncryptionService encryptionService,
-        IStudentRepository studentRepository)
+        IStudentRepository studentRepository,
+        IStaffRepository staffRepository)
     {
         _configuration = configuration;
         _environment = environment;
         _encryptionService = encryptionService;
         _studentRepository = studentRepository;
+        _staffRepository = staffRepository;
     }
 
     public async Task SeedAsync()
@@ -103,6 +106,14 @@ public sealed class DevelopmentDataSeeder : IDevelopmentDataSeeder
             EncryptedName = _encryptionService.Encrypt("ผู้ปกครอง ทดสอบ"),
             EncryptedPhone = _encryptionService.Encrypt("0899999999")
         });
+
+        await UpsertStaffUserAsync(new StaffUser
+        {
+            Id = Guid.NewGuid().ToString(),
+            LineUserId = mockUserId,
+            Role = "Teacher",
+            Name = "ครูสมหญิง ใจดี"
+        });
     }
 
     private async Task UpsertStudentAsync(Student student)
@@ -118,6 +129,16 @@ public sealed class DevelopmentDataSeeder : IDevelopmentDataSeeder
     private async Task UpsertGuardianAsync(Guardian guardian)
     {
         var result = await _studentRepository.UpsertGuardianAsync(guardian);
+        if (result.IsRight) return;
+
+        throw new InvalidOperationException(result.Match(
+            Right: _ => string.Empty,
+            Left: err => err.Message));
+    }
+
+    private async Task UpsertStaffUserAsync(StaffUser staffUser)
+    {
+        var result = await _staffRepository.UpsertStaffUserAsync(staffUser);
         if (result.IsRight) return;
 
         throw new InvalidOperationException(result.Match(
