@@ -14,20 +14,35 @@
           รายชื่อนักเรียน
         </router-link>
       </nav>
-      <div class="p-4 bg-slate-900 border-t border-slate-700 text-sm">
-        เครือข่ายผู้ปกครอง ม.1/2
+      <!-- Role badge in sidebar -->
+      <div class="p-4 bg-slate-900 border-t border-slate-700">
+        <div class="text-sm font-medium" :class="isTeacher() ? 'text-emerald-400' : 'text-amber-400'">
+          {{ currentUser?.name || 'กำลังโหลด...' }}
+        </div>
+        <div class="text-xs mt-1" :class="isTeacher() ? 'text-emerald-300' : 'text-amber-300'">
+          <span v-if="isTeacher()">Teacher — สิทธิ์เต็ม</span>
+          <span v-else-if="isParentNetworkStaff()">Read-only — ข้อมูลบางส่วนถูกจำกัด</span>
+        </div>
       </div>
     </aside>
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col h-screen overflow-hidden pb-16 lg:pb-0">
       <!-- Top header for mobile -->
-      <header class="lg:hidden bg-slate-800 text-white p-4 shadow-md font-bold flex justify-center items-center z-10 relative">
+      <header class="lg:hidden bg-slate-800 text-white p-4 shadow-md font-bold flex justify-between items-center z-10 relative">
         <div class="flex items-center space-x-2">
           <span class="text-xl">👨‍🏫</span>
           <span>ระบบจัดการ</span>
         </div>
+        <div v-if="currentUser" class="text-xs px-2 py-1 rounded-full" :class="isTeacher() ? 'bg-emerald-600 text-emerald-100' : 'bg-amber-600 text-amber-100'">
+          {{ isTeacher() ? 'Teacher' : 'Read-only' }}
+        </div>
       </header>
+
+      <!-- Limited access notice -->
+      <div v-if="isParentNetworkStaff()" class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs text-amber-700">
+        ข้อมูลบางส่วนถูกปิดบังตามสิทธิ์การเข้าถึงและข้อกำหนด PDPA
+      </div>
 
       <main class="flex-1 overflow-y-auto p-4 lg:p-6 bg-slate-50">
         <router-view></router-view>
@@ -51,3 +66,20 @@
     </div>
   </div>
 </template>
+
+<script setup>
+import { onMounted } from 'vue';
+import { useBackofficeAuth } from '../composables/useBackofficeAuth';
+import { useLiff } from '../composables/useLiff';
+
+const { currentUser, loadCurrentUser, isTeacher, isParentNetworkStaff } = useBackofficeAuth();
+const { initLiff, getAccessToken } = useLiff();
+
+onMounted(async () => {
+  await initLiff();
+  const token = getAccessToken();
+  if (token) {
+    await loadCurrentUser(token);
+  }
+});
+</script>

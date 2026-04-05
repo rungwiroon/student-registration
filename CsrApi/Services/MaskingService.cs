@@ -5,6 +5,7 @@ namespace CsrApi.Services;
 public interface IMaskingService
 {
     MaskedStudentDto Mask(Student student, string plainName, string plainPhone);
+    string MaskStudentId(string? studentId);
 }
 
 public class MaskingService : IMaskingService
@@ -21,7 +22,7 @@ public class MaskingService : IMaskingService
         };
     }
 
-    private string MaskStudentId(string? studentId)
+    public string MaskStudentId(string? studentId)
     {
         if (string.IsNullOrEmpty(studentId)) return string.Empty;
         if (studentId.Length < 3) return studentId;

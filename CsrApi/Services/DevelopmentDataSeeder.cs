@@ -18,6 +18,7 @@ public sealed class DevelopmentDataSeeder : IDevelopmentDataSeeder
     private static readonly Guid MockGuardianId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     private static readonly Guid ClassmateOneId = Guid.Parse("33333333-3333-3333-3333-333333333333");
     private static readonly Guid ClassmateTwoId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private static readonly Guid ParentNetworkStaffId = Guid.Parse("55555555-5555-5555-5555-555555555555");
 
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
@@ -114,6 +115,20 @@ public sealed class DevelopmentDataSeeder : IDevelopmentDataSeeder
             Role = "Teacher",
             Name = "ครูสมหญิง ใจดี"
         });
+
+        // Seed a ParentNetworkStaff user (uses same mock LINE user for dev convenience)
+        // In production, different LINE users would have different roles
+        var pnsLineUserId = _configuration["Line:ParentNetworkStaffMockUserId"];
+        if (!string.IsNullOrWhiteSpace(pnsLineUserId))
+        {
+            await UpsertStaffUserAsync(new StaffUser
+            {
+                Id = ParentNetworkStaffId.ToString(),
+                LineUserId = pnsLineUserId,
+                Role = "ParentNetworkStaff",
+                Name = "ผู้ปกครอง เครือข่าย"
+            });
+        }
     }
 
     private async Task UpsertStudentAsync(Student student)

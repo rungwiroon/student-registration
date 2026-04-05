@@ -1,5 +1,9 @@
 import { apiJson, apiBlob } from './apiClient';
 
+export async function fetchCurrentUser(token) {
+  return apiJson('/api/backoffice/me', token);
+}
+
 export async function fetchDashboard(token) {
   return apiJson('/api/backoffice/dashboard', token);
 }

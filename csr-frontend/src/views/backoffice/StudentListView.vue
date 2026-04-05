@@ -6,7 +6,7 @@
 
     <div v-if="loading" class="text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</div>
     <div v-else-if="error" class="text-red-500 bg-red-50 p-4 rounded-lg">{{ error }}</div>
-    
+
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <!-- Search/Filter -->
       <div class="p-4 border-b border-gray-200 bg-gray-50">
@@ -15,8 +15,8 @@
 
       <!-- Mobile Card List -->
       <div class="divide-y divide-gray-100 lg:hidden bg-white">
-        <router-link 
-          v-for="student in filteredStudents" 
+        <router-link
+          v-for="student in filteredStudents"
           :key="'mob-'+student.id"
           :to="`/backoffice/students/${student.id}`"
           class="block p-4 hover:bg-slate-50 transition active:bg-slate-100"
@@ -24,9 +24,9 @@
           <div class="flex justify-between items-start mb-2">
             <div>
               <p class="font-bold text-slate-800 text-base leading-tight">{{ student.name }}</p>
-              <p class="text-xs text-gray-500 mt-1">รหัส: <span class="font-mono text-slate-600">{{ student.studentId }}</span></p>
+              <p class="text-xs text-gray-500 mt-1">รหัส: <span class="font-mono text-slate-600">{{ student.studentId }}</span> · เลขที่ <span class="text-slate-600">{{ student.newNo ?? '-' }}</span></p>
             </div>
-            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wide whitespace-nowrap" 
+            <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wide whitespace-nowrap"
                   :class="student.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
               {{ student.status }}
             </span>
@@ -49,6 +49,7 @@
               <th class="px-6 py-4 border-b">รหัสนักเรียน</th>
               <th class="px-6 py-4 border-b">ชื่อ - นามสกุล</th>
               <th class="px-6 py-4 border-b">ชื่อเล่น</th>
+              <th class="px-6 py-4 border-b">เลขที่</th>
               <th class="px-6 py-4 border-b">สถานะ</th>
               <th class="px-6 py-4 border-b text-center">จัดการ</th>
             </tr>
@@ -58,8 +59,10 @@
               <td class="px-6 py-4 font-mono text-slate-600">{{ student.studentId }}</td>
               <td class="px-6 py-4 font-bold text-slate-800">{{ student.name }}</td>
               <td class="px-6 py-4">{{ student.nickname || '-' }}</td>
+              <td class="px-6 py-4 text-center">{{ student.newNo ?? '-' }}</td>
+              <td class="px-6 py-4">{{ student.nickname || '-' }}</td>
               <td class="px-6 py-4">
-                <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide" 
+                <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide"
                       :class="student.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
                   {{ student.status }}
                 </span>
@@ -73,7 +76,7 @@
           </tbody>
         </table>
       </div>
-      
+
       <div v-if="filteredStudents.length === 0" class="p-10 text-center text-gray-400 bg-white">
         <div class="text-4xl mb-3">🔍</div>
         <p>ไม่พบข้อมูลนักเรียนที่ค้นหา</p>
@@ -86,9 +89,11 @@
 import { ref, onMounted, computed } from 'vue';
 import { fetchStudents } from '../../services/backofficeApi';
 import { useLiff } from '../../composables/useLiff';
+import { useBackofficeAuth } from '../../composables/useBackofficeAuth';
 import { useRouter } from 'vue-router';
 
 const { initLiff, getAccessToken } = useLiff();
+const { loadCurrentUser, canViewFullProfile } = useBackofficeAuth();
 const router = useRouter();
 
 const loading = ref(true);
@@ -99,7 +104,7 @@ const search = ref('');
 const filteredStudents = computed(() => {
   if (!search.value) return students.value;
   const lowerSearch = search.value.toLowerCase();
-  return students.value.filter(s => 
+  return students.value.filter(s =>
     (s.studentId && s.studentId.includes(lowerSearch)) ||
     (s.name && s.name.toLowerCase().includes(lowerSearch)) ||
     (s.nickname && s.nickname.toLowerCase().includes(lowerSearch))
@@ -113,8 +118,9 @@ onMounted(async () => {
     router.push('/');
     return;
   }
-  
+
   try {
+    await loadCurrentUser(token);
     students.value = await fetchStudents(token);
   } catch (err) {
     if (err.status === 403) {
