@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+using System.Data;
+using Dapper;
+
+SqlMapper.AddTypeHandler(new SqliteGuidTypeHandler());
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -137,6 +142,62 @@ app.MapPost("/api/register", async (RegistrationRequest request, HttpContext con
     return guardianResult.Match(
         Right: _ => Results.Ok(new { Message = "Registration successful", StudentId = studentIdToUse }),
         Left: err => err.StatusCode == 400 ? Results.BadRequest(err.Message) : Results.StatusCode(err.StatusCode)
+    );
+});
+
+app.MapGet("/api/me", async (HttpContext context, IStudentRepository repo, IEncryptionService encryption) =>
+{
+    var lineUserId = context.Items["LineUserId"]?.ToString();
+    if (string.IsNullOrEmpty(lineUserId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var guardianResult = await repo.GetGuardianByLineIdAsync(lineUserId);
+
+    return await guardianResult.Match(
+        Right: async g => 
+        {
+            var studentResult = await repo.GetStudentByIdAsync(g.StudentId);
+            return studentResult.Match(
+                Right: s => 
+                {
+                    return Results.Ok(new {
+                        Student = new {
+                            Id = s.Id,
+                            StudentId = s.StudentId,
+                            Name = encryption.Decrypt(s.EncryptedName),
+                            Room = string.IsNullOrEmpty(s.NewRoom) ? s.OldRoom : s.NewRoom,
+                            Phone = string.IsNullOrEmpty(s.EncryptedPhone) ? "" : encryption.Decrypt(s.EncryptedPhone)
+                        },
+                        Guardian = new {
+                            Name = string.IsNullOrEmpty(g.EncryptedName) ? "" : encryption.Decrypt(g.EncryptedName),
+                            RelationType = g.RelationType
+                        }
+                    });
+                },
+                Left: err => Results.NotFound(err.Message)
+            );
+        },
+        Left: err => Task.FromResult(Results.NotFound(err.Message))
+    );
+});
+
+app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
+{
+    var result = await repo.GetStudentsAsync();
+
+    return result.Match(
+        Right: students => 
+        {
+            var list = students.Select(student => {
+                var plainName = encryption.Decrypt(student.EncryptedName);
+                var plainPhone = string.IsNullOrEmpty(student.EncryptedPhone) ? "" : encryption.Decrypt(student.EncryptedPhone);
+                return masking.Mask(student, plainName, plainPhone);
+            });
+            return Results.Ok(list);
+        },
+        Left: err => Results.StatusCode(err.StatusCode)
     );
 });
 

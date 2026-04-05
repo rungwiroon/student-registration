@@ -79,8 +79,10 @@
 
 <script setup>
 import { reactive, ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 
+const router = useRouter();
 const { initLiff, isReady, profile } = useLiff();
 
 const form = reactive({
@@ -150,7 +152,7 @@ const submitForm = async () => {
 
     if (response.ok) {
       alert('🎉 ลงทะเบียนสำเร็จเรียบร้อย ข้อมูลเข้าสู่ระบบแล้วครับ!');
-      // รีเซ็ตฟอร์ม หรือเด้งไปหน้าถัดไป...
+      router.push('/');
     } else {
       const errorText = await response.text();
       alert(`⚠️ เกิดข้อผิดพลาด: ${errorText}`);

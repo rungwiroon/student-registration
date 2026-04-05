@@ -17,6 +17,7 @@ public interface IStudentRepository
     Task<Either<AppError, Unit>> AddStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpdateStudentAsync(Student student);
     Task<Either<AppError, Unit>> UpsertGuardianAsync(Guardian guardian);
+    Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync();
     Task InitializeDatabaseAsync();
 }
 
@@ -98,6 +99,20 @@ public class StudentRepository : IStudentRepository
             }
 
             return student;
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync()
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var students = await connection.QueryAsync<Student>("SELECT * FROM Students");
+            return students.ToList();
         }
         catch (Exception ex)
         {

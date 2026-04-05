@@ -1,7 +1,11 @@
 <template>
   <div class="space-y-6">
+    <div v-if="isLoading" class="text-center text-gray-500 py-10 animate-pulse">
+      กำลังตรวจสอบข้อมูล...
+    </div>
+
     <!-- Hero Profile -->
-    <section class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg text-center relative overflow-hidden mt-2">
+    <section v-else-if="studentData" class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg text-center relative overflow-hidden mt-2">
       <!-- Decorative circles -->
       <div class="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-10 rounded-full"></div>
       <div class="absolute -bottom-10 -left-10 w-24 h-24 bg-white opacity-10 rounded-full"></div>
@@ -9,14 +13,14 @@
       <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center text-3xl mb-3 shadow-md z-10 relative">
         👦🏻
       </div>
-      <h1 class="text-2xl font-bold relative z-10">ด.ช. พัสรก ใจร้าย</h1>
+      <h1 class="text-2xl font-bold relative z-10">{{ studentData.name }}</h1>
       <p class="opacity-90 mt-1 relative z-10 border-t border-emerald-400 pt-2 border-opacity-50 inline-block px-4">
-        ห้อง ม.1/2 &nbsp; | &nbsp; รหัส: <span class="font-mono text-emerald-100">รอประกาศ</span>
+        ห้อง {{ studentData.room || 'ยังไม่ระบุ' }} &nbsp; | &nbsp; รหัส: <span class="font-mono text-emerald-100">{{ studentData.studentId || 'รอประกาศ' }}</span>
       </p>
     </section>
 
     <!-- Quick Info -->
-    <section>
+    <section v-if="studentData">
       <h2 class="text-gray-500 text-sm font-bold uppercase tracking-wider mb-2 ml-1">ข้อมูลล่าสุด</h2>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
         <div class="p-4 flex items-center justify-between">
@@ -28,7 +32,7 @@
             </div>
             <div>
               <p class="text-xs text-gray-400">เบอร์โทรศัพท์นักเรียน</p>
-              <p class="font-medium text-gray-800">088-123-4567</p>
+              <p class="font-medium text-gray-800">{{ studentData.phone || 'ไม่ได้ระบุ' }}</p>
             </div>
           </div>
         </div>
@@ -41,7 +45,7 @@
             </div>
             <div>
               <p class="text-xs text-gray-400">ผู้ปกครอง</p>
-              <p class="font-medium text-gray-800">นาย รกไม่พัก ใจร้าย (บิดา)</p>
+              <p class="font-medium text-gray-800">{{ guardianData.name }} ({{ formatRelation(guardianData.relationType) }})</p>
             </div>
           </div>
         </div>
@@ -58,4 +62,49 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useLiff } from '../composables/useLiff';
+
+const router = useRouter();
+const { initLiff, profile } = useLiff();
+
+const isLoading = ref(true);
+const studentData = ref(null);
+const guardianData = ref(null);
+
+const formatRelation = (rel) => {
+  if (rel === 'Father') return 'บิดา';
+  if (rel === 'Mother') return 'มารดา';
+  return 'อื่นๆ';
+};
+
+onMounted(async () => {
+  await initLiff();
+  
+  try {
+    const token = profile.value?.userId === 'mock-line-uid-1234' ? 'mock-token' : 'mock-token'; // Fallback to mock token for dev demo
+    
+    const response = await fetch('/api/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      studentData.value = data.student;
+      guardianData.value = data.guardian;
+    } else if (response.status === 401 || response.status === 404) {
+      // If not registered or unauthorized
+      router.push('/register');
+    } else {
+      console.error('Failed to load profile');
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+  } finally {
+    isLoading.value = false;
+  }
+});
 </script>
