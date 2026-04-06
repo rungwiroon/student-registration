@@ -6,17 +6,38 @@ const routes = [
   {
     path: '/register',
     name: 'Register',
-    component: () => import('../views/Register.vue')
+    component: () => import('../views/Register.vue'),
+    meta: {
+      frontofficeHeader: {
+        title: 'ลงทะเบียนข้อมูล',
+        showBack: true,
+        showHome: true
+      }
+    }
   },
   {
     path: '/profile/edit',
     name: 'EditProfile',
-    component: () => import('../views/Register.vue')
+    component: () => import('../views/Register.vue'),
+    meta: {
+      frontofficeHeader: {
+        title: 'แก้ไขข้อมูล',
+        showBack: true,
+        showHome: true
+      }
+    }
   },
   {
     path: '/document',
     name: 'IntroductionDocument',
-    component: () => import('../views/IntroductionDocumentView.vue')
+    component: () => import('../views/IntroductionDocumentView.vue'),
+    meta: {
+      frontofficeHeader: {
+        title: 'เอกสารแนะนำนักเรียนและครอบครัว',
+        showBack: true,
+        showHome: true
+      }
+    }
   },
   {
     path: '/',

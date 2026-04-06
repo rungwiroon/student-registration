@@ -1,13 +1,13 @@
 <template>
   <div class="document-container">
     <!-- Local Header -->
-    <header class="sticky top-0 bg-emerald-500 text-white p-4 shadow-md z-10 font-bold text-center flex items-center justify-between print:hidden">
-      <span class="text-xl">📄</span>
-      <span>เอกสารแนะนำนักเรียนและครอบครัว</span>
-      <button @click="printDocument" class="bg-white text-emerald-600 px-3 py-1 rounded-lg text-sm font-bold hover:bg-emerald-50 transition">
-        พิมพ์ / บันทึก PDF
-      </button>
-    </header>
+    <FrontofficePageHeader title="เอกสารแนะนำนักเรียนและครอบครัว">
+      <template #actions>
+        <button @click="printDocument" class="bg-white text-emerald-600 px-3 py-1 rounded-lg text-sm font-bold hover:bg-emerald-50 transition">
+          พิมพ์ / บันทึก PDF
+        </button>
+      </template>
+    </FrontofficePageHeader>
 
     <main class="p-4">
       <div v-if="isLoading" class="text-center text-gray-500 py-10 animate-pulse">
@@ -135,6 +135,7 @@ import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 import { useIntroductionDocument } from '../composables/useIntroductionDocument';
+import FrontofficePageHeader from '../components/FrontofficePageHeader.vue';
 
 const router = useRouter();
 const { initLiff, isReady, getAccessToken } = useLiff();

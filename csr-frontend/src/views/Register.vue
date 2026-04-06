@@ -1,10 +1,6 @@
 <template>
   <div>
-    <!-- Local Header just for Register -->
-    <header class="sticky top-0 bg-emerald-500 text-white p-4 shadow-md z-10 font-bold text-center flex items-center justify-center space-x-2">
-      <span class="text-xl">📋</span>
-      <span>{{ pageTitle }}</span>
-    </header>
+    <FrontofficePageHeader :title="pageTitle" />
 
     <main class="p-4 space-y-6">
     <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-500 text-center">{{ formTitle }}</h1>
@@ -197,6 +193,7 @@ import { useLiff } from '../composables/useLiff';
 import { useRegistrationForm } from '../composables/useRegistrationForm';
 import StudentPhotoUpload from '../components/StudentPhotoUpload.vue';
 import GuardianPhotoUpload from '../components/GuardianPhotoUpload.vue';
+import FrontofficePageHeader from '../components/FrontofficePageHeader.vue';
 
 const router = useRouter();
 const route = useRoute();
