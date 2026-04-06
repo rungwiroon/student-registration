@@ -14,6 +14,7 @@ namespace CsrApi.Repositories;
 public interface IStudentRepository
 {
     Task<Either<AppError, Student>> GetStudentByIdAsync(Guid id);
+    Task<Either<AppError, Student>> GetStudentByStudentIdAsync(string studentId);
     Task<Either<AppError, Guardian>> GetGuardianByLineIdAsync(string lineUserId);
     Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansByStudentIdAsync(Guid studentId);
     Task<Either<AppError, Unit>> AddStudentAsync(Student student);
@@ -137,6 +138,27 @@ public class StudentRepository : IStudentRepository
             if (student == null)
             {
                 return AppError.NotFound($"Student with ID {id} not found.");
+            }
+
+            return student;
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, Student>> GetStudentByStudentIdAsync(string studentId)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var student = await connection.QuerySingleOrDefaultAsync<Student>(
+                "SELECT * FROM Students WHERE StudentId = @StudentId", new { StudentId = studentId });
+
+            if (student == null)
+            {
+                return AppError.NotFound($"Student with StudentId {studentId} not found.");
             }
 
             return student;

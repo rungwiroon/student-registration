@@ -34,6 +34,13 @@ public sealed class RegistrationService : IRegistrationService
 
     public async Task<Either<AppError, Guid>> UpsertRegistrationAsync(RegistrationRequest request, string lineUserId, IFormFile? studentPhoto, List<IFormFile>? guardianPhotos, CancellationToken cancellationToken)
     {
+        // Validate required student fields
+        var validationError = ValidateStudentInfo(request.Student);
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
         var existingGuardianResult = await _repo.GetGuardianByLineIdAsync(lineUserId);
         var existingGuardianError = GetError(existingGuardianResult);
         if (existingGuardianError is not null && existingGuardianError.StatusCode != 404)
@@ -54,6 +61,17 @@ public sealed class RegistrationService : IRegistrationService
             }
 
             currentStudent = existingStudentResult.Match(student => student, _ => null!);
+        }
+
+        // Check StudentId uniqueness (skip if same student is updating with same StudentId)
+        var existingByStudentIdResult = await _repo.GetStudentByStudentIdAsync(request.Student.StudentId!);
+        var existingByStudentId = existingByStudentIdResult.Match(
+            student => student,
+            _ => (Student?)null
+        );
+        if (existingByStudentId is not null && existingByStudentId.Id != studentId)
+        {
+            return AppError.BadRequest($"รหัสประจำตัว '{request.Student.StudentId}' ถูกใช้งานแล้วโดยนักเรียนคนอื่น");
         }
 
         StoredPhoto? storedStudentPhoto = null;
@@ -314,6 +332,31 @@ public sealed class RegistrationService : IRegistrationService
 
         var student = studentResult.Match(student => student, _ => null)!;
         return (guardian, student);
+    }
+
+    private static AppError? ValidateStudentInfo(StudentInfo student)
+    {
+        if (string.IsNullOrWhiteSpace(student.StudentId))
+        {
+            return AppError.BadRequest("กรุณากรอกรหัสประจำตัวนักเรียน");
+        }
+
+        if (student.NewNo is null || student.NewNo <= 0)
+        {
+            return AppError.BadRequest("เลขที่ต้องเป็นจำนวนเต็มบวก");
+        }
+
+        if (student.NewNo > 50)
+        {
+            return AppError.BadRequest("เลขที่ต้องไม่เกิน 50");
+        }
+
+        if (student.NewNo > 50)
+        {
+            return AppError.BadRequest("เลขที่ต้องไม่เกิน 50");
+        }
+
+        return null;
     }
 
     private Student BuildStudent(StudentInfo request, Guid studentId, Student? existingStudent, StoredPhoto? storedPhoto)

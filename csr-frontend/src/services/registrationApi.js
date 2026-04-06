@@ -1,4 +1,5 @@
 import { apiBlob, apiFetch, apiJson } from './apiClient';
+import { parseDobToApi } from '../utils/validators';
 
 function normalizeOptionalText(value) {
   return value ? value : '';
@@ -17,7 +18,7 @@ function toPayload(form) {
       newNo: form.student.newNo || null,
       phone: normalizeOptionalText(form.student.phone),
       bloodType: normalizeOptionalText(form.student.bloodType),
-      dob: normalizeOptionalText(form.student.dob)
+      dob: form.student.dob ? parseDobToApi(form.student.dob) : ''
     },
     guardians: form.guardians.map(g => ({
       order: g.order,

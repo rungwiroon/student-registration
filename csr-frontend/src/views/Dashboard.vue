@@ -55,7 +55,7 @@
     <!-- Action -->
     <div class="pt-2">
       <router-link to="/profile/edit" class="w-full block text-center bg-white border border-emerald-500 text-emerald-600 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-emerald-50 focus:ring-4 focus:ring-emerald-100 transition active:scale-95">
-        ✏️ แก้ไขข้อมูลเพื่อปรับปรุง
+        ✏️ แก้ไขข้อมูล
       </router-link>
     </div>
   </div>

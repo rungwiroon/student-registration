@@ -90,18 +90,18 @@ docker compose -f docker-compose.dev.yml down
 | Column | Type | Constraints | Logic / Security |
 | :--- | :--- | :--- | :--- |
 | `Id` | GUID | PRIMARY KEY | - |
-| `StudentId` | TEXT | UNIQUE | รหัสประจำตัว (เช่น 30558) |
+| `StudentId` | TEXT | - | รหัสประจำตัว (เช่น 30558) — **required in registration flow**, uniqueness enforced at application layer (DB nullable, target: unique constraint) |
 | `OldRoom` | TEXT | - | ห้องเดิมตอน ม.1 |
 | `OldNo` | INTEGER | - | เลขที่เดิม |
 | `NewRoom` | TEXT | - | ห้องใหม่ (ม.1/2) |
-| `NewNo` | INTEGER | - | เลขที่ใหม่ |
+| `NewNo` | INTEGER | - | เลขที่ใหม่ — **required in registration flow** (DB nullable for legacy data) |
 | `EncName` | TEXT | NOT NULL | ชื่อ-นามสกุลจริง (**AES-256**) (legacy) |
 | `EncFirstName` | TEXT | - | ชื่อจริง (**AES-256**) |
 | `EncLastName` | TEXT | - | นามสกุล (**AES-256**) |
 | `Nickname` | TEXT | - | ชื่อเล่น |
 | `EncPhone` | TEXT | - | เบอร์โทรศัพท์ (**AES-256**) |
 | `BloodType` | TEXT | - | กรุ๊ปเลือด |
-| `DOB` | TEXT | - | วันเกิด |
+| `DOB` | TEXT | - | วันเกิด (format: `yyyy-MM-dd`) |
 | `PhotoFileName` | TEXT | - | ชื่อไฟล์รูปที่เก็บใน protected storage |
 | `PhotoContentType` | TEXT | - | MIME type ของรูป |
 | `PhotoUploadedAtUtc` | TEXT | - | เวลาอัปโหลดรูป |
@@ -160,5 +160,8 @@ docker compose -f docker-compose.dev.yml down
 ### **Frontend Logic**
 - หน้า frontend เรียก API ผ่าน `/api/*`
 - หน้า `Register.vue` ทำหน้าที่ orchestration เท่านั้น โดยแยก form state ไปที่ `useRegistrationForm` และแยก UI รูปเป็น `StudentPhotoUpload.vue` กับ `GuardianPhotoUpload.vue`
+- `Student ID` (รหัสประจำตัว) และ `เลขที่` เป็น field บังคับกรอกทั้งใน frontend และ backend validation แม้ว่า database schema ยังเป็น nullable เพื่อรองรับข้อมูลเดิม
+- `StudentId` ต้องไม่ซ้ำกัน — uniqueness ถูกตรวจสอบที่ application layer ในรอบนี้ (target: unique constraint ใน DB รอบถัดไป)
+- field `วันเกิด` ใช้ `@vuepic/vue-datepicker` แสดงผลเป็น `dd/MM/yyyy` และส่งค่าเข้า API เป็น `yyyy-MM-dd`
 - ใน production-like compose, frontend static files ถูกเสิร์ฟผ่าน `nginx` และ proxy `/api` ไปที่ backend
 - ใน development compose, Vite dev server จะ proxy `/api` ไปที่ backend service ภายใน Docker network

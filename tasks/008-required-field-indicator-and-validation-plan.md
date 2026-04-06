@@ -1,5 +1,5 @@
 # ✅ Phase 6: Required Field Indicator & Form Validation UX
-**Status:** Planned
+**Status:** Implemented
 **Goal:** ปรับปรุงฟอร์มลงทะเบียน/แก้ไขข้อมูลให้ใช้งานได้ชัดเจนขึ้น โดยช่องที่บังคับกรอกต้องมีเครื่องหมาย `*` สีแดง และระบบต้องมี validation ที่ชัดเจนทั้งก่อน submit และระหว่างกรอกข้อมูล
 
 ---
