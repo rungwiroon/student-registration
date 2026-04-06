@@ -27,3 +27,7 @@ CsrApi/App_Data/
 .idea/
 *.suo
 *.user
+
+# Playwright E2E artifacts
+test-results/
+.playwright-mcp/

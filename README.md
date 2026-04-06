@@ -165,3 +165,46 @@ docker compose -f docker-compose.dev.yml down
 - field `วันเกิด` ใช้ `@vuepic/vue-datepicker` แสดงผลเป็น `dd/MM/yyyy` และส่งค่าเข้า API เป็น `yyyy-MM-dd`
 - ใน production-like compose, frontend static files ถูกเสิร์ฟผ่าน `nginx` และ proxy `/api` ไปที่ backend
 - ใน development compose, Vite dev server จะ proxy `/api` ไปที่ backend service ภายใน Docker network
+
+---
+
+## 🧪 5. E2E Tests (Playwright)
+
+### **Prerequisites**
+
+- รัน dev stack ด้วย `docker compose -f docker-compose.dev.yml up --build`
+- mock auth + seed data ต้องเปิดอยู่ (เป็น default ของ dev compose)
+
+### **Run tests**
+
+```bash
+cd csr-frontend
+
+# Run all E2E tests (headless)
+npm run test:e2e
+
+# Run with browser visible
+npm run test:e2e:headed
+
+# Run with Playwright UI
+npm run test:e2e:ui
+```
+
+### **Current coverage (MVP)**
+
+| Scenario | File |
+| :--- | :--- |
+| Dashboard loads seed data | `tests/e2e/frontoffice/dashboard.spec.js` |
+| Class list loads classmates | `tests/e2e/frontoffice/directory.spec.js` |
+| Contacts page shows info | `tests/e2e/frontoffice/directory.spec.js` |
+| Document renders + Home navigation | `tests/e2e/frontoffice/navigation.spec.js` |
+| Edit profile Back/Home navigation | `tests/e2e/frontoffice/navigation.spec.js` |
+| Registration blocks invalid submit | `tests/e2e/frontoffice/registration.spec.js` |
+| Registration valid submit + persist | `tests/e2e/frontoffice/registration.spec.js` |
+
+### **Deferred**
+
+- file upload scenarios
+- backoffice smoke tests
+- authorization/role scenarios
+- CI integration
