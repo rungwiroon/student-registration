@@ -8,6 +8,7 @@ public interface IBackofficePolicy
     bool CanViewDocuments(HttpContext httpContext);
     bool CanUpdateReviewStatus(HttpContext httpContext);
     bool CanEditInternalNote(HttpContext httpContext);
+    bool CanManageStaff(HttpContext httpContext);
 }
 
 public class BackofficePolicy : IBackofficePolicy
@@ -44,6 +45,12 @@ public class BackofficePolicy : IBackofficePolicy
     }
 
     public bool CanEditInternalNote(HttpContext httpContext)
+    {
+        var role = GetRole(httpContext);
+        return role == "Teacher";
+    }
+
+    public bool CanManageStaff(HttpContext httpContext)
     {
         var role = GetRole(httpContext);
         return role == "Teacher";

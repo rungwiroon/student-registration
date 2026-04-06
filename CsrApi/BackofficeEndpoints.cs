@@ -74,7 +74,8 @@ public static class BackofficeEndpoints
                     CanViewPhotos = policy.CanViewPhotos(ctx),
                     CanViewDocuments = policy.CanViewDocuments(ctx),
                     CanUpdateReviewStatus = policy.CanUpdateReviewStatus(ctx),
-                    CanEditInternalNote = policy.CanEditInternalNote(ctx)
+                    CanEditInternalNote = policy.CanEditInternalNote(ctx),
+                    CanManageStaff = policy.CanManageStaff(ctx)
                 }
             });
         });
@@ -344,6 +345,111 @@ public static class BackofficeEndpoints
                 }).ToList()
             });
         });
+
+        // GET /api/backoffice/staff — list all staff users (Teacher-only)
+        group.MapGet("/staff", async (HttpContext ctx, IStaffRepository staffRepo, ILineProfileService lineProfile) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            if (!policy.CanManageStaff(ctx))
+                return Results.StatusCode(403);
+
+            var result = await staffRepo.GetAllStaffAsync();
+            if (result.IsLeft)
+                return result.Match(Right: _ => Results.Ok(), Left: err => Results.StatusCode(err.StatusCode));
+
+            var staff = result.Match(Right: s => s, Left: _ => new List<StaffUser>());
+            var lineNames = await lineProfile.GetDisplayNamesAsync(staff.Select(s => s.LineUserId));
+            return Results.Ok(staff.Select(s => new
+            {
+                s.Id,
+                s.LineUserId,
+                s.Role,
+                s.Name,
+                LineDisplayName = lineNames.GetValueOrDefault(s.LineUserId),
+                s.IsActive,
+                CreatedAt = s.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            }));
+        });
+
+        // POST /api/backoffice/staff — add a new staff user (Teacher-only)
+        group.MapPost("/staff", async (HttpContext ctx, CreateStaffRequest req, IStaffRepository staffRepo) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            if (!policy.CanManageStaff(ctx))
+                return Results.StatusCode(403);
+
+            if (string.IsNullOrWhiteSpace(req.LineUserId) || string.IsNullOrWhiteSpace(req.Role) || string.IsNullOrWhiteSpace(req.Name))
+                return Results.BadRequest(new { Error = "LineUserId, Name, and Role are required." });
+
+            if (req.Role != "Teacher" && req.Role != "ParentNetworkStaff")
+                return Results.BadRequest(new { Error = "Role must be 'Teacher' or 'ParentNetworkStaff'." });
+
+            var staff = new StaffUser
+            {
+                Id = Guid.NewGuid().ToString(),
+                LineUserId = req.LineUserId,
+                Role = req.Role,
+                Name = req.Name,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await staffRepo.UpsertStaffUserAsync(staff);
+            return result.Match(
+                Right: _ => Results.Ok(new { staff.Id, staff.LineUserId, staff.Role, staff.Name }),
+                Left: err => Results.StatusCode(err.StatusCode)
+            );
+        });
+
+        // PUT /api/backoffice/staff/{id} — update staff role/name (Teacher-only)
+        group.MapPut("/staff/{id}", async (HttpContext ctx, string id, UpdateStaffRequest req, IStaffRepository staffRepo) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            if (!policy.CanManageStaff(ctx))
+                return Results.StatusCode(403);
+
+            if (req.Role != null && req.Role != "Teacher" && req.Role != "ParentNetworkStaff")
+                return Results.BadRequest(new { Error = "Role must be 'Teacher' or 'ParentNetworkStaff'." });
+
+            var existingResult = await staffRepo.GetStaffByIdAsync(id);
+            if (existingResult.IsLeft)
+                return Results.NotFound();
+
+            var existing = existingResult.Match(s => s, _ => null!);
+
+            if (req.Role != null) existing.Role = req.Role;
+            if (req.Name != null) existing.Name = req.Name;
+
+            var result = await staffRepo.UpsertStaffUserAsync(existing);
+            return result.Match(
+                Right: _ => Results.Ok(new { existing.Id, existing.LineUserId, existing.Role, existing.Name }),
+                Left: err => Results.StatusCode(err.StatusCode)
+            );
+        });
+
+        // DELETE /api/backoffice/staff/{id} — soft-delete staff user (Teacher-only)
+        group.MapDelete("/staff/{id}", async (HttpContext ctx, string id, IStaffRepository staffRepo) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            if (!policy.CanManageStaff(ctx))
+                return Results.StatusCode(403);
+
+            // Prevent self-deletion
+            var currentLineUserId = ctx.Items["LineUserId"]?.ToString();
+            var existingResult = await staffRepo.GetStaffByIdAsync(id);
+            if (existingResult.IsLeft)
+                return Results.NotFound();
+
+            var existing = existingResult.Match(s => s, _ => null!);
+            if (existing.LineUserId == currentLineUserId)
+                return Results.BadRequest(new { Error = "Cannot deactivate yourself." });
+
+            var result = await staffRepo.DeleteStaffAsync(id);
+            return result.Match(
+                Right: _ => Results.Ok(),
+                Left: err => Results.StatusCode(err.StatusCode)
+            );
+        });
     }
 
     private static string MaskPhone(string? phone)
@@ -385,5 +491,18 @@ public static class BackofficeEndpoints
     {
         public string LineUserId { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+    }
+
+    public class CreateStaffRequest
+    {
+        public string LineUserId { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
+
+    public class UpdateStaffRequest
+    {
+        public string? Role { get; set; }
+        public string? Name { get; set; }
     }
 }

@@ -24,6 +24,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddSingleton<IMaskingService, MaskingService>();
 builder.Services.AddSingleton<IBackofficePolicy, BackofficePolicy>();
+builder.Services.AddSingleton<ILineProfileService, LineProfileService>();
 builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection("PhotoStorage"));
 builder.Services.AddSingleton<IPhotoStorageService, PhotoStorageService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();

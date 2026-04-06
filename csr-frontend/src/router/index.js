@@ -59,6 +59,11 @@ const routes = [
         path: 'students/:id',
         name: 'BackofficeStudentDetail',
         component: () => import('../views/backoffice/StudentDetailView.vue')
+      },
+      {
+        path: 'staff',
+        name: 'BackofficeStaff',
+        component: () => import('../views/backoffice/StaffManagementView.vue')
       }
     ]
   }

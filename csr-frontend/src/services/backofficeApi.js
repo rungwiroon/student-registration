@@ -39,3 +39,30 @@ export async function fetchStudentPhotoBlob(id, token) {
 export async function fetchGuardianPhotoBlob(id, order, token) {
   return apiBlob(`/api/backoffice/students/${id}/guardians/${order}/photo`, token);
 }
+
+// Staff management
+export async function fetchStaffList(token) {
+  return apiJson('/api/backoffice/staff', token);
+}
+
+export async function createStaff({ lineUserId, name, role }, token) {
+  return apiJson('/api/backoffice/staff', token, {
+    method: 'POST',
+    body: JSON.stringify({ lineUserId, name, role }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+export async function updateStaff(id, { role, name }, token) {
+  return apiJson(`/api/backoffice/staff/${id}`, token, {
+    method: 'PUT',
+    body: JSON.stringify({ role, name }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+export async function deleteStaff(id, token) {
+  return apiJson(`/api/backoffice/staff/${id}`, token, {
+    method: 'DELETE'
+  });
+}
