@@ -5,7 +5,7 @@
     :access-token="accessToken"
     title="รูปผู้ปกครอง"
     description="อัปโหลดรูปผู้ปกครองเพื่อผูกกับบัญชี LINE และเรียกดูผ่าน API ที่ต้องยืนยันตัวตน"
-    theme="teal"
+    :theme="theme"
     @update:model-value="emit('update:modelValue', $event)"
   />
 </template>
@@ -25,6 +25,10 @@ defineProps({
   accessToken: {
     type: String,
     default: ''
+  },
+  theme: {
+    type: String,
+    default: 'secondary'
   }
 });
 

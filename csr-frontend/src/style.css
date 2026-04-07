@@ -1,10 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #10b981;
+  /* Brand - school blue (primary) */
+  --color-brand-primary-soft: #E6F5FC;
+  --color-brand-primary: #029DE3;
+  --color-brand-primary-strong: #016F9F;
+
+  /* Brand - school pink (accent) */
+  --color-brand-secondary-soft: #FFE5F4;
+  --color-brand-secondary: #FF66C4;
+  --color-brand-secondary-strong: #D93A9D;
+
+  /* Neutral */
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F8FAFC;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-border: #E2E8F0;
+
+  /* Action */
+  --color-action-primary: #016F9F;
+  --color-action-primary-hover: #01557A;
+  --color-action-secondary: #FFE5F4;
+  --color-focus-ring: #7DD3FC;
+
+  /* Shell */
+  --color-header-bg: #029DE3;
+  --color-header-bg-strong: #016F9F;
+  --color-nav-active: #016F9F;
+  --color-backoffice-sidebar: #0F172A;
+  --color-backoffice-sidebar-muted: #1E293B;
+  --color-backoffice-sidebar-active: #E6F5FC;
 }
 
 body {
-  background-color: #f3f4f6;
+  background-color: var(--color-surface-muted);
   font-family: ui-sans-serif, system-ui, sans-serif;
 }

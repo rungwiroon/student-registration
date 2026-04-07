@@ -2,16 +2,16 @@
   <div class="space-y-4">
     <div class="flex justify-between items-end mb-6 mt-2">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800">เพื่อนในห้อง</h1>
-        <p class="text-sm text-gray-500">ม.1/2 (สมุดรายชื่อปิดบังPDPA)</p>
+        <h1 class="text-2xl font-bold text-text-primary">เพื่อนในห้อง</h1>
+        <p class="text-sm text-text-secondary">ม.1/2 (สมุดรายชื่อปิดบังPDPA)</p>
       </div>
-      <div v-if="!isLoading" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded-md">
+      <div v-if="!isLoading" class="rounded-md bg-brand-secondary-soft px-2 py-1 text-xs font-bold text-brand-secondary-strong">
         {{ students.length }} คน
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="text-center text-gray-500 py-10 animate-pulse">
+    <div v-if="isLoading" class="py-10 text-center text-text-secondary animate-pulse">
       กำลังเรียกดูรายชื่อ...
     </div>
 
@@ -21,19 +21,19 @@
     </div>
 
     <!-- List -->
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 divide-y divide-gray-50">
-      <div v-for="(student, index) in students" :key="student.id || index" class="p-4 flex items-center space-x-4 hover:bg-gray-50 transition">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold shrink-0">
+    <div v-else class="overflow-hidden rounded-xl border border-border bg-surface shadow-sm divide-y divide-border">
+      <div v-for="(student, index) in students" :key="student.id || index" class="flex items-center space-x-4 p-4 transition hover:bg-surface-muted">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary-soft font-bold text-brand-primary-strong">
           {{ index + 1 }}
         </div>
         <div>
           <!-- Backend performs PDPA masking -->
-          <h3 class="font-medium text-gray-800">{{ student.maskedName }}</h3>
-          <p class="text-xs text-gray-400">รหัสประจำตัว: <span class="font-mono text-gray-500">{{ student.maskedStudentId || 'รอประกาศ' }}</span></p>
+          <h3 class="font-medium text-text-primary">{{ student.maskedName }}</h3>
+          <p class="text-xs text-text-secondary">รหัสประจำตัว: <span class="font-mono text-text-secondary">{{ student.maskedStudentId || 'รอประกาศ' }}</span></p>
         </div>
       </div>
       
-      <div v-if="students.length === 0" class="p-8 text-center text-gray-400">
+      <div v-if="students.length === 0" class="p-8 text-center text-text-secondary">
         ยังไม่มีรายชื่อเพื่อนในห้องนี้
       </div>
     </div>

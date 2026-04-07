@@ -5,7 +5,7 @@
     :access-token="accessToken"
     title="รูปนักเรียน"
     description="อัปโหลดรูปนักเรียนเพื่อใช้ยืนยันตัวตนในระบบเฉพาะผู้มีสิทธิ์"
-    theme="emerald"
+    theme="primary"
     @update:model-value="emit('update:modelValue', $event)"
   />
 </template>

@@ -60,7 +60,7 @@ const props = defineProps({
   },
   theme: {
     type: String,
-    default: 'emerald'
+    default: 'primary'
   }
 });
 
@@ -75,16 +75,19 @@ const selectedFileName = computed(() => props.modelValue?.name || '');
 const hasExistingPhoto = computed(() => Boolean(props.existingPhotoUrl));
 const badgeText = computed(() => (props.modelValue ? 'อัปเดตรูปใหม่' : hasExistingPhoto.value ? 'มีรูปเดิม' : 'ยังไม่มีรูป'));
 const buttonText = computed(() => (props.modelValue || hasExistingPhoto.value ? 'เลือกรูปใหม่' : 'เลือกรูป'));
-const sectionClass = computed(() => props.theme === 'emerald'
-  ? 'rounded-2xl border border-gray-100 bg-gray-50 p-4 shadow-sm'
-  : 'rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm');
-const titleClass = computed(() => props.theme === 'emerald' ? 'font-bold text-gray-800' : 'font-bold text-emerald-800');
-const badgeClass = computed(() => props.theme === 'emerald'
-  ? 'bg-gray-100 text-gray-600'
-  : 'bg-emerald-100 text-emerald-700');
-const buttonClass = computed(() => props.theme === 'emerald'
-  ? 'inline-flex cursor-pointer items-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600'
-  : 'inline-flex cursor-pointer items-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700');
+const isSecondaryTheme = computed(() => props.theme === 'secondary');
+const sectionClass = computed(() => isSecondaryTheme.value
+  ? 'rounded-2xl border border-brand-secondary-soft bg-brand-secondary-soft/40 p-4 shadow-sm'
+  : 'rounded-2xl border border-border bg-surface p-4 shadow-sm');
+const titleClass = computed(() => isSecondaryTheme.value
+  ? 'font-bold text-brand-secondary-strong'
+  : 'font-bold text-text-primary');
+const badgeClass = computed(() => isSecondaryTheme.value
+  ? 'bg-brand-secondary-soft text-brand-secondary-strong'
+  : 'bg-brand-primary-soft text-brand-primary-strong');
+const buttonClass = computed(() => isSecondaryTheme.value
+  ? 'inline-flex cursor-pointer items-center rounded-xl bg-brand-secondary px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-secondary-strong'
+  : 'inline-flex cursor-pointer items-center rounded-xl bg-action-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-action-primary-hover');
 
 watch(
   () => props.modelValue,

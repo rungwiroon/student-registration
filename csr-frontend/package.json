@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:summary": "node scripts/generate-e2e-summary.mjs",
+    "test:e2e:report": "playwright test; status=$?; node scripts/generate-e2e-summary.mjs; exit $status",
+    "test:e2e:show-report": "playwright show-report test-results/html"
   },
   "dependencies": {
     "@line/liff": "^2.28.0",

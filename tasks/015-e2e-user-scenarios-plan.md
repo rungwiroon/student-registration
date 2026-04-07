@@ -1,7 +1,22 @@
 # 🧪 Phase 15: End-to-End Test Plan for User Scenarios
-**Status:** Implemented
+**Status:** MVP implemented, expansion planning in progress
 **Depends on:** existing front-office flows, backoffice routes, development compose with mock auth + seeded data
 **Goal:** วางแผนและเตรียมชุด end-to-end (E2E) tests ที่ทดสอบ user scenarios สำคัญของระบบแบบใช้งานจริงตั้งแต่หน้า UI จนถึง API integration เพื่อให้มั่นใจว่า flow หลักไม่พังเมื่อมีการแก้ไขโค้ดในอนาคต
+
+## 📌 0. Current Status Update
+
+สถานะล่าสุดของ phase นี้ไม่ใช่ “แค่แผน” แล้ว แต่เป็น **MVP ที่รันได้จริง**:
+
+- มี Playwright setup แล้วใน `csr-frontend/`
+- มี front-office MVP scenarios ครบชุดหลักตามรอบแรก
+- มี mock-auth helpers และ route helpers สำหรับลดความเปราะของ suite
+- มี HTML / JSON / JUnit / Markdown report outputs แล้ว
+
+แต่ยังมี gap ที่ต้องพูดตรง ๆ:
+
+- test `valid registration submit` ตอนนี้ยืนยันได้ชัดเรื่อง submit + redirect
+- ยังไม่ได้ยืนยัน persistence หลัง reload แบบ explicit และ deterministic พอที่จะเรียกว่า coverage เต็มของ save-and-reload flow
+- backoffice / authz / upload ยังไม่ควรถูกนับว่าอยู่ในรอบนี้
 
 ---
 
@@ -49,16 +64,16 @@
 
 แต่ฝั่ง backoffice ยังเป็น area ที่ authz และ business rules สำคัญกว่า front-office ดังนั้นรอบแรกควรเลือกเฉพาะ scenario ที่ stable และคุ้มต่อ regression จริง
 
-### **D: ตอนนี้ frontend ยังไม่มี test framework สำหรับ E2E**
-จาก `csr-frontend/package.json`:
-- ยังไม่มี Playwright หรือ Cypress
-- script ปัจจุบันมีแค่ `dev`, `build`, `preview`
+### **D: ตอนนี้ frontend มี Playwright-based E2E framework แล้ว**
+จาก `csr-frontend/package.json` และ `playwright.config.js`:
+- มี `@playwright/test`
+- มี scripts สำหรับ `test:e2e`, `test:e2e:headed`, `test:e2e:ui`
+- มี reporting outputs สำหรับ HTML, JSON, JUnit และ Markdown summary
 
-แปลว่า task นี้ต้องครอบคลุมทั้ง:
-- การเลือก framework
-- การตั้งโครงสร้าง test
-- การกำหนด execution flow
-- การจัดการ artifacts/report
+ดังนั้นโจทย์ถัดไปไม่ใช่ “ติดตั้ง framework” แล้ว แต่คือ:
+- ขยาย scenario coverage แบบมีลำดับ
+- เพิ่มความเข้มของ assertions ใน flow ที่ยังบาง
+- ทำให้ report ที่ออกมานำไปอ่านสรุปหรือใช้ต่อใน CI ได้ง่าย
 
 ---
 
@@ -259,6 +274,7 @@ Target files ที่น่าจะต้องแตะ:
 - [x] กำหนด browser/project strategy ที่เหมาะสม
 - [x] ตั้งค่า screenshot/trace/video policy สำหรับ failed tests
 - [x] สร้างโฟลเดอร์ `tests/e2e`
+- [x] เพิ่ม HTML / JSON / JUnit / Markdown reporting outputs
 
 ### **Environment / reliability**
 - [x] กำหนดวิธีใช้ mock auth ให้ deterministic
@@ -272,7 +288,7 @@ Target files ที่น่าจะต้องแตะ:
 - [x] document render + navigation back/home
 - [x] invalid registration submit shows validation
 - [x] valid registration submit succeeds
-- [x] reload after save reflects persisted data
+- [ ] reload after save reflects persisted data with explicit assertion
 
 ### **Deferred after MVP**
 - [ ] student or guardian photo upload happy path
@@ -286,6 +302,7 @@ Target files ที่น่าจะต้องแตะ:
 - [x] อัปเดต `README.md` วิธีรัน E2E tests
 - [x] อธิบายว่า suite แรกใช้ mock auth / seeded data
 - [x] ระบุสิ่งที่ยัง deferred เช่น upload/backoffice/authz scenarios
+- [x] อธิบาย report outputs และวิธี generate summary report
 
 ---
 
@@ -350,3 +367,61 @@ Target files ที่น่าจะต้องแตะ:
 บีบ suite แรกให้ **เสถียรและน่าเชื่อถือ** ก่อน แล้วค่อยขยาย
 
 ถ้าทำถูก งานนี้จะเป็นตัวเปลี่ยนสถานะโปรเจกต์จาก “feature เยอะ” ไปเป็น “แก้ต่อได้อย่างมั่นใจ”
+
+---
+
+## 📈 15. Next Expansion Plan After MVP
+
+รอบถัดไปควรขยายแบบมีวินัย ไม่ใช่เพิ่มเคสมั่ว ๆ ให้ suite บวม:
+
+### **Phase 15.1: Harden the existing front-office suite**
+เป้าหมายคือทำให้ของเดิม “น่าเชื่อถือขึ้น” ก่อน “กว้างขึ้น”:
+
+1. **Tighten registration persistence assertions**
+- หลัง submit สำเร็จ ให้กลับเข้า flow ที่อ่านค่าที่เพิ่งบันทึกได้จริง
+- ต้องเช็กค่า field หรือ view state หลัง reload แบบ explicit
+- ถ้าจะเช็ก persistence ต้องใช้ข้อมูล unique ต่อ run เพื่อลด false positive
+
+2. **Add negative-state coverage for existing pages**
+- document page เมื่อไม่มีข้อมูลควรแสดง empty state ถูกต้อง
+- front-office pages ไม่ควรค้าง loading แบบเงียบ ๆ
+- กรณี API fail ควรมี smoke assertion อย่างน้อยในหน้าหลักที่เสี่ยง
+
+3. **Reduce selector fragility**
+- ค่อย ๆ ย้าย selector ที่อิง DOM structure มากเกินไปไปเป็น role/text/test-id ที่เสถียรกว่า
+- หลีกเลี่ยง assertions ที่ผูกกับ styling classes ถ้าไม่จำเป็น
+
+### **Phase 15.2: Expand front-office business-value coverage**
+เพิ่ม coverage เฉพาะ flow ที่คุ้มต่อ regression จริง:
+
+1. **Edit existing profile and verify saved values**
+2. **Document screen smoke for registered vs unregistered state**
+3. **Navigation smoke for all standalone front-office pages**
+4. **Protected asset smoke only if deterministic fixture setup is ready**
+
+### **Phase 15.3: Selective backoffice smoke, not authz matrix**
+ถัดจาก front-office ค่อยพิจารณา backoffice แบบจำกัดขอบเขต:
+
+- เริ่มจาก smoke tests สำหรับ route access และ list/detail render ที่ stable เท่านั้น
+- ยังไม่ควรทำ permission matrix เต็ม เพราะ authz model ยังไม่ชัดพอ
+- ถ้า role design ยังไม่นิ่ง ให้แยก smoke coverage ออกจาก authorization coverage เสมอ
+
+## 🧾 16. Reporting Outputs and Expected Usage
+
+ผลลัพธ์ที่ควรได้จากการรัน E2E ตอนนี้:
+
+- `test-results/html/index.html` สำหรับเปิดดู report แบบ human-friendly
+- `test-results/results.json` สำหรับสรุปผลต่อหรือใช้เป็น input tooling
+- `test-results/results.xml` สำหรับ CI หรือระบบที่อ่าน JUnit XML
+- `test-results/summary.md` สำหรับสรุปผลแบบอ่านง่ายใน repo/workflow
+
+### **Recommended commands**
+- `npm run test:e2e` เพื่อรัน suite และสร้าง HTML/JSON/JUnit artifacts
+- `npm run test:e2e:report` เพื่อรัน suite และสร้าง Markdown summary เพิ่ม
+- `npm run test:e2e:summary` เพื่อ regenerate summary จาก JSON ที่มีอยู่แล้ว
+- `npm run test:e2e:show-report` เพื่อเปิด HTML report
+
+### **Minimum expectation for next phase**
+- ทุกการรัน regression หลักควรมี artifact อ่านย้อนหลังได้
+- เมื่อ test fail ต้องมีข้อมูลพอให้รู้ว่า fail ที่ scenario ไหนและ file ไหน
+- summary report ต้องช่วยให้คนไม่เปิด HTML ก็ยังอ่านภาพรวม pass/fail ได้

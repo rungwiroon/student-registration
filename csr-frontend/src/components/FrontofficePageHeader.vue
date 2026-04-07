@@ -1,5 +1,5 @@
 <template>
-  <header class="sticky top-0 bg-emerald-500 text-white p-4 shadow-md z-10 flex items-center justify-between print:hidden">
+  <header class="sticky top-0 bg-header-bg text-white p-4 shadow-md z-10 flex items-center justify-between print:hidden">
     <button
       v-if="showBack"
       @click="goBackOrFallback(backFallbackRoute)"

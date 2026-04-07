@@ -166,6 +166,13 @@ docker compose -f docker-compose.dev.yml down
 - ใน production-like compose, frontend static files ถูกเสิร์ฟผ่าน `nginx` และ proxy `/api` ไปที่ backend
 - ใน development compose, Vite dev server จะ proxy `/api` ไปที่ backend service ภายใน Docker network
 
+### **Theme tokens (first-pass school theme refactor)**
+- semantic theme tokens ถูกกำหนดรวมที่ `csr-frontend/src/style.css`
+- รอบแรกล็อกทิศทางไว้ว่า `blue = primary`, `pink = accent`
+- shared shell หลัก เช่น `App.vue`, `MainLayout.vue`, `BackofficeLayout.vue`, `FrontofficePageHeader.vue` ควรอิง token เช่น `bg-header-bg`, `text-nav-active`, `bg-backoffice-sidebar`, `text-action-primary`
+- หลีกเลี่ยงการ hardcode `emerald`, `teal`, หรือ `slate` ใน shared shell และ reusable foundation เมื่อสิ่งนั้นเป็นสีเชิง brand/theme หลัก
+- status colors เช่น success / warning / error ยังแยกจาก school brand colors ตามเดิม
+
 ---
 
 ## 🧪 5. E2E Tests (Playwright)
@@ -183,12 +190,28 @@ cd csr-frontend
 # Run all E2E tests (headless)
 npm run test:e2e
 
+# Run all E2E tests and write a markdown summary report
+npm run test:e2e:report
+
 # Run with browser visible
 npm run test:e2e:headed
 
 # Run with Playwright UI
 npm run test:e2e:ui
+
+# Rebuild summary from existing JSON results
+npm run test:e2e:summary
+
+# Open the HTML report
+npm run test:e2e:show-report
 ```
+
+### **Report outputs**
+
+- Human-readable HTML report: `csr-frontend/test-results/html/index.html`
+- Machine-readable JSON report: `csr-frontend/test-results/results.json`
+- CI-friendly JUnit XML: `csr-frontend/test-results/results.xml`
+- Markdown summary: `csr-frontend/test-results/summary.md`
 
 ### **Current coverage (MVP)**
 
@@ -200,11 +223,12 @@ npm run test:e2e:ui
 | Document renders + Home navigation | `tests/e2e/frontoffice/navigation.spec.js` |
 | Edit profile Back/Home navigation | `tests/e2e/frontoffice/navigation.spec.js` |
 | Registration blocks invalid submit | `tests/e2e/frontoffice/registration.spec.js` |
-| Registration valid submit + persist | `tests/e2e/frontoffice/registration.spec.js` |
+| Registration valid submit + redirect | `tests/e2e/frontoffice/registration.spec.js` |
 
 ### **Deferred**
 
 - file upload scenarios
 - backoffice smoke tests
 - authorization/role scenarios
+- stronger persistence assertions after save + reload
 - CI integration
