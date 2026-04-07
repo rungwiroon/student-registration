@@ -69,15 +69,14 @@ public class BackofficeStudentExportService : IBackofficeStudentExportService
         // Server-side search matching the frontend filter behavior
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var lowerSearch = search.ToLowerInvariant();
             query = query.Where(s =>
             {
                 var studentId = s.StudentId ?? "";
                 var name = _encryption.Decrypt(s.EncryptedName);
                 var nickname = s.Nickname ?? "";
-                return studentId.Contains(lowerSearch, StringComparison.OrdinalIgnoreCase) ||
-                       name.Contains(lowerSearch, StringComparison.OrdinalIgnoreCase) ||
-                       nickname.Contains(lowerSearch, StringComparison.OrdinalIgnoreCase);
+                return studentId.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                       name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                       nickname.Contains(search, StringComparison.OrdinalIgnoreCase);
             });
         }
 

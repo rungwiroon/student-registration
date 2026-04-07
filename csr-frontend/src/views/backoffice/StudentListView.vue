@@ -78,7 +78,6 @@
               <td class="px-6 py-4 font-bold text-slate-800">{{ student.name }}</td>
               <td class="px-6 py-4">{{ student.nickname || '-' }}</td>
               <td class="px-6 py-4 text-center">{{ student.newNo ?? '-' }}</td>
-              <td class="px-6 py-4">{{ student.nickname || '-' }}</td>
               <td class="px-6 py-4">
                 <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide"
                       :class="student.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
