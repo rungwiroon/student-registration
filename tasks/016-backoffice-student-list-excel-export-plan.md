@@ -288,29 +288,29 @@ service ที่น่าจะเพิ่ม:
 ## ✅ 10. Implementation Checklist
 
 ### **Backend contract / policy**
-- [ ] ตกลงให้ชัดว่า role ไหน export ได้บ้าง
-- [ ] ล็อก field list สำหรับ export first pass
-- [ ] เพิ่ม endpoint `/api/backoffice/students/export.xlsx`
-- [ ] แยก `401`, `403`, `400` ให้ชัด
-- [ ] ยืนยันว่า export ไม่คืนข้อมูลเกินสิทธิ์ของ role
+- [x] ตกลงให้ชัดว่า role ไหน export ได้บ้าง
+- [x] ล็อก field list สำหรับ export first pass
+- [x] เพิ่ม endpoint `/api/backoffice/students/export.xlsx`
+- [x] แยก `401`, `403`, `400` ให้ชัด
+- [x] ยืนยันว่า export ไม่คืนข้อมูลเกินสิทธิ์ของ role
 
 ### **Backend export generation**
-- [ ] เพิ่ม Excel package ที่เหมาะสม
-- [ ] เพิ่ม export service
-- [ ] map dataset เป็น row model ที่ทดสอบได้ง่าย
-- [ ] สร้าง workbook/worksheet แบบง่ายสำหรับ first pass
-- [ ] คืน filename + MIME type ถูกต้อง
+- [x] เพิ่ม Excel package ที่เหมาะสม
+- [x] เพิ่ม export service
+- [x] map dataset เป็น row model ที่ทดสอบได้ง่าย
+- [x] สร้าง workbook/worksheet แบบง่ายสำหรับ first pass
+- [x] คืน filename + MIME type ถูกต้อง
 
 ### **Filter/query alignment**
-- [ ] กำหนด query contract ร่วมกับหน้า list
-- [ ] รองรับ `search` อย่างน้อยในรอบแรก
-- [ ] ยืนยันว่า export dataset ตรงกับ intent ของ user บนหน้า list
+- [x] กำหนด query contract ร่วมกับหน้า list
+- [x] รองรับ `search` อย่างน้อยในรอบแรก
+- [x] ยืนยันว่า export dataset ตรงกับ intent ของ user บนหน้า list
 
 ### **Frontend**
-- [ ] เพิ่มปุ่ม `Export Excel`
-- [ ] เพิ่ม download action ใน `backofficeApi.js`
-- [ ] จัดการ loading/error state
-- [ ] ซ่อนหรือ disable action ตามสิทธิ์
+- [x] เพิ่มปุ่ม `Export Excel`
+- [x] เพิ่ม download action ใน `backofficeApi.js`
+- [x] จัดการ loading/error state
+- [x] ซ่อนหรือ disable action ตามสิทธิ์
 
 ### **Verification**
 - [ ] teacher export สำเร็จและเปิดไฟล์ได้จริง

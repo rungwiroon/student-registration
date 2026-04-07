@@ -2,6 +2,24 @@
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold text-gray-800">รายชื่อนักเรียน</h1>
+      <button
+        v-if="showExportButton"
+        @click="handleExport"
+        :disabled="exporting || filteredStudents.length === 0"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition"
+        :class="exporting || filteredStudents.length === 0
+          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 active:bg-slate-100'"
+      >
+        <svg v-if="!exporting" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3" />
+        </svg>
+        <svg v-else class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        {{ exporting ? 'กำลังส่งออก...' : 'Export Excel' }}
+      </button>
     </div>
 
     <div v-if="loading" class="text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</div>
@@ -87,19 +105,22 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { fetchStudents } from '../../services/backofficeApi';
+import { fetchStudents, exportStudentsExcel } from '../../services/backofficeApi';
 import { useLiff } from '../../composables/useLiff';
 import { useBackofficeAuth } from '../../composables/useBackofficeAuth';
 import { useRouter } from 'vue-router';
 
 const { initLiff, getAccessToken } = useLiff();
-const { loadCurrentUser, canViewFullProfile } = useBackofficeAuth();
+const { loadCurrentUser, canViewFullProfile, canExportStudentList } = useBackofficeAuth();
 const router = useRouter();
 
 const loading = ref(true);
 const error = ref('');
 const students = ref([]);
 const search = ref('');
+const exporting = ref(false);
+
+const showExportButton = computed(() => canExportStudentList());
 
 const filteredStudents = computed(() => {
   if (!search.value) return students.value;
@@ -110,6 +131,23 @@ const filteredStudents = computed(() => {
     (s.nickname && s.nickname.toLowerCase().includes(lowerSearch))
   );
 });
+
+async function handleExport() {
+  if (exporting.value) return;
+  exporting.value = true;
+  try {
+    const token = getAccessToken();
+    await exportStudentsExcel(token, search.value);
+  } catch (err) {
+    if (err.status === 403) {
+      alert('ไม่มีสิทธิ์ส่งออกข้อมูล');
+    } else {
+      alert('เกิดข้อผิดพลาดในการส่งออก');
+    }
+  } finally {
+    exporting.value = false;
+  }
+}
 
 onMounted(async () => {
   await initLiff();

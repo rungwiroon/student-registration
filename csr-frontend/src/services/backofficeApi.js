@@ -66,3 +66,20 @@ export async function deleteStaff(id, token) {
     method: 'DELETE'
   });
 }
+
+export async function exportStudentsExcel(token, search = '') {
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const blob = await apiBlob(`/api/backoffice/students/export.xlsx${query}`, token);
+
+  // Trigger browser download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `students.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

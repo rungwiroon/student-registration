@@ -9,6 +9,7 @@ public interface IBackofficePolicy
     bool CanUpdateReviewStatus(HttpContext httpContext);
     bool CanEditInternalNote(HttpContext httpContext);
     bool CanManageStaff(HttpContext httpContext);
+    bool CanExportStudentList(HttpContext httpContext);
 }
 
 public class BackofficePolicy : IBackofficePolicy
@@ -53,6 +54,13 @@ public class BackofficePolicy : IBackofficePolicy
     public bool CanManageStaff(HttpContext httpContext)
     {
         var role = GetRole(httpContext);
+        return role == "Teacher";
+    }
+
+    public bool CanExportStudentList(HttpContext httpContext)
+    {
+        var role = GetRole(httpContext);
+        // Only Teacher can export; ParentNetworkStaff denied until PDPA clear
         return role == "Teacher";
     }
 }

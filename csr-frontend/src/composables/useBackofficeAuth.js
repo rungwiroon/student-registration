@@ -28,6 +28,7 @@ export function useBackofficeAuth() {
   const canEditInternalNote = () => currentUser.value?.capabilities?.canEditInternalNote ?? false;
   const canViewFullProfile = () => currentUser.value?.capabilities?.canViewFullProfile ?? false;
   const canManageStaff = () => currentUser.value?.capabilities?.canManageStaff ?? false;
+  const canExportStudentList = () => currentUser.value?.capabilities?.canExportStudentList ?? false;
   const isReadOnly = () => currentUser.value?.isReadOnly ?? true;
 
   return {
@@ -42,6 +43,7 @@ export function useBackofficeAuth() {
     canEditInternalNote,
     canViewFullProfile,
     canManageStaff,
+    canExportStudentList,
     isReadOnly
   };
 }

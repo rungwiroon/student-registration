@@ -75,7 +75,8 @@ public static class BackofficeEndpoints
                     CanViewDocuments = policy.CanViewDocuments(ctx),
                     CanUpdateReviewStatus = policy.CanUpdateReviewStatus(ctx),
                     CanEditInternalNote = policy.CanEditInternalNote(ctx),
-                    CanManageStaff = policy.CanManageStaff(ctx)
+                    CanManageStaff = policy.CanManageStaff(ctx),
+                    CanExportStudentList = policy.CanExportStudentList(ctx)
                 }
             });
         });
@@ -137,6 +138,22 @@ public static class BackofficeEndpoints
                         return Results.Ok(list);
                     }
                 },
+                Left: err => Results.StatusCode(err.StatusCode)
+            );
+        });
+
+        // GET /api/backoffice/students/export.xlsx — export student list as Excel
+        group.MapGet("/students/export.xlsx", async (HttpContext ctx, string? search, IBackofficeStudentExportService exportService, CancellationToken cancellationToken) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            if (!policy.CanExportStudentList(ctx))
+                return Results.StatusCode(403);
+
+            var role = policy.GetRole(ctx);
+            var result = await exportService.ExportStudentListAsync(role, search, cancellationToken);
+
+            return result.Match<IResult>(
+                Right: data => Results.File(data.Content, data.ContentType, data.FileName),
                 Left: err => Results.StatusCode(err.StatusCode)
             );
         });

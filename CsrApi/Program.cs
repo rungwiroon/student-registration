@@ -31,6 +31,7 @@ builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
+builder.Services.AddScoped<IBackofficeStudentExportService, BackofficeStudentExportService>();
 
 // Configure SQLCipher provider for SQLite
 SQLitePCL.Batteries_V2.Init();
