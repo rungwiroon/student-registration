@@ -7,13 +7,13 @@
         <span>ระบบจัดการ</span>
       </div>
       <nav class="flex-1 p-4 space-y-2">
-        <router-link to="/backoffice/dashboard" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-backoffice-sidebar-active text-action-primary font-bold">
+        <router-link to="/backoffice/dashboard" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-white/15 text-white font-bold">
           แดชบอร์ด
         </router-link>
-        <router-link to="/backoffice/students" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-backoffice-sidebar-active text-action-primary font-bold">
+        <router-link to="/backoffice/students" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-white/15 text-white font-bold">
           รายชื่อนักเรียน
         </router-link>
-        <router-link v-if="canManageStaff()" to="/backoffice/staff" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-backoffice-sidebar-active text-action-primary font-bold">
+        <router-link v-if="canManageStaff()" to="/backoffice/staff" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-white/15 text-white font-bold">
           จัดการเจ้าหน้าที่
         </router-link>
       </nav>
