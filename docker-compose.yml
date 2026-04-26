@@ -8,9 +8,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
-      - EncryptionKey=${ENCRYPTION_KEY}
-      - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID}
+      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING:?CONNECTION_STRING is required}
+      - EncryptionKey=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID:?LINE_LIFF_CHANNEL_ID is required}
     volumes:
       - app_data:/app/data
 
