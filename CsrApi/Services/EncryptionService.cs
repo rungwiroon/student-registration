@@ -18,7 +18,8 @@ public class EncryptionService : IEncryptionService
 
     public EncryptionService(IConfiguration configuration)
     {
-        var keyString = configuration["EncryptionKey"] ?? "default_secure_key_12345678901234";
+        var keyString = configuration["EncryptionKey"]
+            ?? throw new InvalidOperationException("EncryptionKey is not configured. Set it via environment variable or user secrets.");
         _key = Encoding.UTF8.GetBytes(keyString.PadRight(32, '0').Substring(0, 32)); // Ensure 256-bit key
     }
 

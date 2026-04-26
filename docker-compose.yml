@@ -8,9 +8,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/csrapi.db;Password=SuperSecretDbPassword123!;
-      - EncryptionKey=${ENCRYPTION_KEY:-my_super_secret_encryption_key_256}
-      - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID:-YOUR_LIFF_CHANNEL_ID}
+      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - EncryptionKey=${ENCRYPTION_KEY}
+      - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID}
     volumes:
       - app_data:/app/data
 
