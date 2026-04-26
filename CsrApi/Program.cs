@@ -26,6 +26,9 @@ builder.Services.AddHttpClient();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // API runs inside Docker behind nginx; trust the internal proxy
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 // CORS

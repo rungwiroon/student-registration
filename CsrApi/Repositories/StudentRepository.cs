@@ -32,7 +32,11 @@ public class StudentRepository : IStudentRepository
 
     public StudentRepository(IConfiguration configuration)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException("DefaultConnection missing");
+        _connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(_connectionString))
+        {
+            throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+        }
     }
 
     private SqliteConnection GetConnection()
