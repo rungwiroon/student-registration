@@ -2,7 +2,7 @@
   <div>
     <header class="sticky top-0 bg-header-bg text-white p-4 shadow-md z-10 font-bold text-center flex items-center justify-center space-x-2">
       <span class="text-xl">🏫</span>
-      <span>CSR ม.1/2</span>
+      <span>ทะเบียนนักเรียน ม.1/2</span>
     </header>
     
     <main class="p-4 pb-20">
