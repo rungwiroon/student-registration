@@ -1,8 +1,7 @@
 services:
   api:
-    build:
-      context: ./CsrApi
-      dockerfile: Dockerfile
+    image: csr-api:latest
+    pull_policy: never
     ports:
       - "8080:8080"
     environment:
@@ -15,12 +14,8 @@ services:
       - app_data:/app/data
 
   frontend:
-    build:
-      context: ./csr-frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_LIFF_ID: ${VITE_LIFF_ID:-}
-        VITE_USE_MOCK_LIFF: ${VITE_USE_MOCK_LIFF:-false}
+    image: csr-frontend:latest
+    pull_policy: never
     depends_on:
       - api
     ports:
@@ -28,3 +23,8 @@ services:
 
 volumes:
   app_data:
+
+networks:
+  default:
+    name: proxy
+    external: true

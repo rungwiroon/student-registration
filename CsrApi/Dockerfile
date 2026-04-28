@@ -1,15 +1,12 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG TARGETARCH
 WORKDIR /src
 COPY ["CsrApi.csproj", "./"]
-RUN dotnet restore "CsrApi.csproj"
+RUN dotnet restore "CsrApi.csproj" -a $TARGETARCH
 COPY . .
-WORKDIR "/src/"
-RUN dotnet build "CsrApi.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "CsrApi.csproj" -c Release -o /app/publish
+RUN dotnet publish "CsrApi.csproj" -c Release -o /app/publish -a $TARGETARCH --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "CsrApi.dll"]
