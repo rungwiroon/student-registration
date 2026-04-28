@@ -47,7 +47,7 @@ public static class BackofficeEndpoints
                 if (staffResult.IsLeft)
                     return Results.StatusCode(403);
 
-                var staff = staffResult.Match(s => s, _ => null!);
+                var staff = staffResult.MatchUnsafe(s => s, _ => null!);
                 if (staff == null)
                      return Results.StatusCode(403);
 
@@ -165,7 +165,7 @@ public static class BackofficeEndpoints
 
             var studentResult = await repo.GetStudentByIdAsync(id);
             if (studentResult.IsLeft) return Results.NotFound();
-            var student = studentResult.Match(s => s, _ => null!);
+            var student = studentResult.MatchUnsafe(s => s, _ => null!);
 
             var guardiansResult = await repo.GetGuardiansByStudentIdAsync(id);
             var guardians = guardiansResult.Match(g => g.ToList(), _ => new List<Guardian>());
@@ -246,7 +246,7 @@ public static class BackofficeEndpoints
             var studentResult = await repo.GetStudentByIdAsync(id);
             if (studentResult.IsLeft) return Results.NotFound();
 
-            var student = studentResult.Match(s => s, _ => null!);
+            var student = studentResult.MatchUnsafe(s => s, _ => null!);
             student.Status = req.Status;
 
             var updateResult = await repo.UpdateStudentAsync(student);
@@ -265,7 +265,7 @@ public static class BackofficeEndpoints
             var studentResult = await repo.GetStudentByIdAsync(id);
             if (studentResult.IsLeft) return Results.NotFound();
 
-            var student = studentResult.Match(s => s, _ => null!);
+            var student = studentResult.MatchUnsafe(s => s, _ => null!);
             student.InternalNote = req.InternalNote;
 
             var updateResult = await repo.UpdateStudentAsync(student);
@@ -284,7 +284,7 @@ public static class BackofficeEndpoints
             var studentResult = await repo.GetStudentByIdAsync(id);
             if (studentResult.IsLeft) return Results.NotFound();
 
-            var student = studentResult.Match(s => s, _ => null!);
+            var student = studentResult.MatchUnsafe(s => s, _ => null!);
             if (string.IsNullOrEmpty(student.PhotoFileName) || string.IsNullOrEmpty(student.PhotoContentType))
                 return Results.NotFound("Student has no photo");
 
@@ -326,7 +326,7 @@ public static class BackofficeEndpoints
             var studentResult = await repo.GetStudentByIdAsync(id);
             if (studentResult.IsLeft) return Results.NotFound();
 
-            var student = studentResult.Match(s => s, _ => null!);
+            var student = studentResult.MatchUnsafe(s => s, _ => null!);
 
             var guardiansResult = await repo.GetGuardiansByStudentIdAsync(id);
             var guardians = guardiansResult.Match(g => g.ToList(), _ => new List<Guardian>());
@@ -432,7 +432,7 @@ public static class BackofficeEndpoints
             if (existingResult.IsLeft)
                 return Results.NotFound();
 
-            var existing = existingResult.Match(s => s, _ => null!);
+            var existing = existingResult.MatchUnsafe(s => s, _ => null!);
 
             if (req.Role != null) existing.Role = req.Role;
             if (req.Name != null) existing.Name = req.Name;
@@ -457,7 +457,7 @@ public static class BackofficeEndpoints
             if (existingResult.IsLeft)
                 return Results.NotFound();
 
-            var existing = existingResult.Match(s => s, _ => null!);
+            var existing = existingResult.MatchUnsafe(s => s, _ => null!);
             if (existing.LineUserId == currentLineUserId)
                 return Results.BadRequest(new { Error = "Cannot deactivate yourself." });
 

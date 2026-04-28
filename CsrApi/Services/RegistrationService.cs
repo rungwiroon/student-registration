@@ -48,7 +48,7 @@ public sealed class RegistrationService : IRegistrationService
             return existingGuardianError;
         }
 
-        var existingGuardian = existingGuardianResult.Match<Guardian?>(guardian => guardian, _ => null);
+        var existingGuardian = existingGuardianResult.MatchUnsafe<Guardian?>(guardian => guardian, _ => null);
         var studentId = existingGuardian?.StudentId ?? Guid.NewGuid();
         Student? currentStudent = null;
         if (existingGuardian is not null)
@@ -60,12 +60,12 @@ public sealed class RegistrationService : IRegistrationService
                 return existingStudentError;
             }
 
-            currentStudent = existingStudentResult.Match(student => student, _ => null!);
+            currentStudent = existingStudentResult.MatchUnsafe(student => student, _ => null!);
         }
 
         // Check StudentId uniqueness (skip if same student is updating with same StudentId)
         var existingByStudentIdResult = await _repo.GetStudentByStudentIdAsync(request.Student.StudentId!);
-        var existingByStudentId = existingByStudentIdResult.Match(
+        var existingByStudentId = existingByStudentIdResult.MatchUnsafe(
             student => student,
             _ => (Student?)null
         );
@@ -84,7 +84,7 @@ public sealed class RegistrationService : IRegistrationService
                 return studentPhotoError;
             }
 
-            storedStudentPhoto = studentPhotoResult.Match(photo => photo, _ => null!);
+            storedStudentPhoto = studentPhotoResult.MatchUnsafe(photo => photo, _ => null!);
         }
 
         var student = BuildStudent(request.Student, studentId, currentStudent, storedStudentPhoto);
@@ -126,7 +126,7 @@ public sealed class RegistrationService : IRegistrationService
                     return guardianPhotoError;
                 }
 
-                storedGuardianPhoto = guardianPhotoResult.Match(photo => photo, _ => null!);
+                storedGuardianPhoto = guardianPhotoResult.MatchUnsafe(photo => photo, _ => null!);
             }
 
             guardiansToUpsert.Add(BuildGuardian(guardianInfo, guardianOrder, lineUserId, studentId, existing, storedGuardianPhoto));
@@ -151,7 +151,7 @@ public sealed class RegistrationService : IRegistrationService
             return guardianError;
         }
 
-        var primaryGuardian = guardianResult.Match(guardian => guardian, _ => null)!;
+        var primaryGuardian = guardianResult.MatchUnsafe(guardian => guardian, _ => null)!;
         var studentResult = await _repo.GetStudentByIdAsync(primaryGuardian.StudentId);
         var studentError = GetError(studentResult);
         if (studentError is not null)
@@ -159,7 +159,7 @@ public sealed class RegistrationService : IRegistrationService
             return studentError;
         }
 
-        var student = studentResult.Match(student => student, _ => null)!;
+        var student = studentResult.MatchUnsafe(student => student, _ => null)!;
         
         // Get all guardians for this student
         var guardiansResult = await _repo.GetGuardiansByStudentIdAsync(student.Id);
@@ -212,7 +212,7 @@ public sealed class RegistrationService : IRegistrationService
             return guardianError;
         }
 
-        var primaryGuardian = guardianResult.Match(guardian => guardian, _ => null)!;
+        var primaryGuardian = guardianResult.MatchUnsafe(guardian => guardian, _ => null)!;
         var studentResult = await _repo.GetStudentByIdAsync(primaryGuardian.StudentId);
         var studentError = GetError(studentResult);
         if (studentError is not null)
@@ -220,7 +220,7 @@ public sealed class RegistrationService : IRegistrationService
             return studentError;
         }
 
-        var student = studentResult.Match(student => student, _ => null)!;
+        var student = studentResult.MatchUnsafe(student => student, _ => null)!;
         
         // Get all guardians for this student
         var guardiansResult = await _repo.GetGuardiansByStudentIdAsync(student.Id);
@@ -322,7 +322,7 @@ public sealed class RegistrationService : IRegistrationService
             return guardianError;
         }
 
-        var guardian = guardianResult.Match(guardian => guardian, _ => null)!;
+        var guardian = guardianResult.MatchUnsafe(guardian => guardian, _ => null)!;
         var studentResult = await _repo.GetStudentByIdAsync(guardian.StudentId);
         var studentError = GetError(studentResult);
         if (studentError is not null)
@@ -330,7 +330,7 @@ public sealed class RegistrationService : IRegistrationService
             return studentError;
         }
 
-        var student = studentResult.Match(student => student, _ => null)!;
+        var student = studentResult.MatchUnsafe(student => student, _ => null)!;
         return (guardian, student);
     }
 

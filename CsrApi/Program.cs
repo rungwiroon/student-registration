@@ -199,7 +199,7 @@ app.MapPost("/api/register", async (HttpContext context, IRegistrationService re
             Left: ToErrorResult);
     }
 
-    var formData = formDataResult.Match(data => data, _ => null)!;
+    var formData = formDataResult.MatchUnsafe(data => data, _ => null)!;
     var result = await requestServices.UpsertRegistrationAsync(
         formData.Registration,
         lineUserId,
