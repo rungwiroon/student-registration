@@ -10,8 +10,9 @@
       <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-brand-secondary opacity-15"></div>
       <div class="absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-white opacity-10"></div>
       
-      <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center text-3xl mb-3 shadow-md z-10 relative">
-        👦🏻
+      <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3 shadow-md z-10 relative overflow-hidden">
+        <img v-if="photoUrl" :src="photoUrl" alt="รูปนักเรียน" class="w-full h-full object-cover" />
+        <span v-else class="text-3xl">👦🏻</span>
       </div>
       <h1 class="text-2xl font-bold relative z-10">{{ studentName }}</h1>
       <p class="mt-1 inline-block border-t border-white/30 px-4 pt-2 opacity-90 relative z-10">
@@ -62,9 +63,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
+import { fetchProtectedPhotoUrl } from '../services/registrationApi';
 
 const router = useRouter();
 const { initLiff, getAccessToken } = useLiff();
@@ -72,6 +74,7 @@ const { initLiff, getAccessToken } = useLiff();
 const isLoading = ref(true);
 const studentData = ref(null);
 const guardianData = ref(null);
+const photoUrl = ref(null);
 
 const studentName = computed(() => {
   if (!studentData.value) return '-';
@@ -90,6 +93,12 @@ const formatRelation = (rel) => {
   if (rel === 'Mother') return 'มารดา';
   return 'อื่นๆ';
 };
+
+onBeforeUnmount(() => {
+  if (photoUrl.value) {
+    URL.revokeObjectURL(photoUrl.value);
+  }
+});
 
 onMounted(async () => {
   await initLiff();
@@ -112,6 +121,14 @@ onMounted(async () => {
       studentData.value = data.student;
       // Get primary guardian (first in array)
       guardianData.value = data.guardians?.[0] || null;
+
+      if (data.student?.photoUrl) {
+        try {
+          photoUrl.value = await fetchProtectedPhotoUrl(token, data.student.photoUrl);
+        } catch (err) {
+          console.warn('Failed to load student photo', err);
+        }
+      }
     } else if (response.status === 401 || response.status === 404) {
       // If not registered or unauthorized
       router.push('/register');
