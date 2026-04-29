@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using CsrApi;
@@ -146,6 +148,50 @@ app.UseMiddleware<LiffAuthMiddleware>();
 
 app.MapBackofficeEndpoints();
 app.MapHealthChecks("/health");
+
+// One-time bootstrap endpoint for first Teacher (self-disabling after use)
+app.MapPost("/api/bootstrap", async (
+    HttpContext context,
+    IStaffRepository staffRepo,
+    IConfiguration config) =>
+{
+    var secret = config["Bootstrap:SecretToken"];
+    if (string.IsNullOrWhiteSpace(secret))
+        return Results.NotFound();
+
+    var body = await context.Request.ReadFromJsonAsync<BootstrapRequest>();
+    if (body is null || !CryptographicOperations.FixedTimeEquals(
+        Encoding.UTF8.GetBytes(body.SecretToken),
+        Encoding.UTF8.GetBytes(secret)))
+        return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(body.LineUserId))
+        return Results.BadRequest(new { error = "LineUserId required" });
+
+    var existing = await staffRepo.GetAllStaffAsync();
+    var hasTeacher = existing.Match(
+        Right: list => list.Any(s => s.Role == "Teacher" && s.IsActive),
+        Left: _ => false);
+
+    if (hasTeacher)
+        return Results.Conflict(new { error = "Teacher already exists" });
+
+    var staff = new StaffUser
+    {
+        Id = Guid.NewGuid().ToString(),
+        LineUserId = body.LineUserId,
+        Role = "Teacher",
+        Name = body.Name ?? "ครูผู้ดูแลระบบ",
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    var result = await staffRepo.UpsertStaffUserAsync(staff);
+    return result.Match(
+        Right: _ => Results.Ok(new { message = "Teacher created", lineUserId = body.LineUserId }),
+        Left: err => Results.StatusCode(err.StatusCode)
+    );
+});
 
 // Minimal API Endpoints
 app.MapPost("/api/students", async (StudentRequest request, IStudentRepository repo, IEncryptionService encryption) =>
@@ -304,6 +350,26 @@ app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encr
     );
 });
 
+app.MapGet("/api/directory", async (HttpContext context, IStaffRepository staffRepo) =>
+{
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
+        return Results.Unauthorized();
+
+    var result = await staffRepo.GetAllStaffAsync();
+    return result.Match(
+        Right: staff =>
+        {
+            var parentNetwork = staff
+                .Where(s => s.IsActive && s.Role == "ParentNetworkStaff")
+                .Select(s => new { s.Id, s.Name })
+                .ToList();
+            return Results.Ok(new { parentNetwork });
+        },
+        Left: err => Results.StatusCode(err.StatusCode)
+    );
+});
+
 app.Run();
 
 static string? GetLineUserId(HttpContext context)
@@ -382,3 +448,5 @@ public class StudentRequest
 }
 
 public sealed record RegistrationFormData(RegistrationRequest Registration, IFormFile? StudentPhoto, List<IFormFile> GuardianPhotos);
+
+public sealed record BootstrapRequest(string SecretToken, string LineUserId, string? Name);
