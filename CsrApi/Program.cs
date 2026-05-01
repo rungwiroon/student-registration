@@ -366,7 +366,7 @@ app.MapGet("/api/directory", async (HttpContext context, IStaffRepository staffR
                 .ToList();
             var parentNetwork = staff
                 .Where(s => s.IsActive && s.Role == "ParentNetworkStaff")
-                .Select(s => new { s.Id, s.Name })
+                .Select(s => new { s.Id, s.Name, s.Phone, s.Position })
                 .ToList();
             return Results.Ok(new { teachers, parentNetwork });
         },

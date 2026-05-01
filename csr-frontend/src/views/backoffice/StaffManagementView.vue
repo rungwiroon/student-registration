@@ -74,7 +74,7 @@
               </span>
             </div>
             <div class="flex items-center space-x-2 mt-2" v-if="staff.isActive">
-              <button @click="startEditName(staff)" class="text-xs text-slate-600 hover:underline">แก้ไขชื่อ</button>
+              <button @click="startEdit(staff)" class="text-xs text-slate-600 hover:underline">แก้ไข</button>
               <span class="text-gray-300">|</span>
               <button @click="toggleRole(staff)" class="text-xs text-blue-600 hover:underline">
                 เปลี่ยนบทบาท
@@ -86,11 +86,24 @@
               <span class="text-gray-300">|</span>
               <button @click="handleDelete(staff)" class="text-xs text-red-500 hover:underline">ปิดใช้งาน</button>
             </div>
-            <!-- Inline edit name (mobile) -->
-            <div v-if="editingId === staff.id" class="mt-2 flex items-center space-x-2">
-              <input v-model="editName" type="text" class="flex-1 px-2 py-1 border rounded text-sm" />
-              <button @click="saveEditName(staff)" class="text-xs text-emerald-600 font-medium">บันทึก</button>
-              <button @click="editingId = null" class="text-xs text-gray-500">ยกเลิก</button>
+            <!-- Inline edit (mobile) -->
+            <div v-if="editingId === staff.id" class="mt-3 space-y-2">
+              <div>
+                <label class="text-xs text-gray-500">ชื่อ</label>
+                <input v-model="editName" type="text" class="w-full px-2 py-1 border rounded text-sm" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
+              </div>
+              <div>
+                <label class="text-xs text-gray-500">เบอร์โทร</label>
+                <input v-model="editPhone" type="text" class="w-full px-2 py-1 border rounded text-sm" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
+              </div>
+              <div>
+                <label class="text-xs text-gray-500">ตำแหน่ง</label>
+                <input v-model="editPosition" type="text" class="w-full px-2 py-1 border rounded text-sm" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
+              </div>
+              <div class="flex items-center space-x-2">
+                <button @click="saveEdit(staff)" class="text-xs text-emerald-600 font-medium">บันทึก</button>
+                <button @click="editingId = null" class="text-xs text-gray-500">ยกเลิก</button>
+              </div>
             </div>
           </div>
         </div>
@@ -101,6 +114,7 @@
             <thead class="bg-gray-50 text-gray-700 font-medium">
               <tr>
                 <th class="px-6 py-4 border-b">ชื่อ</th>
+                <th class="px-6 py-4 border-b">LINE User ID</th>
                 <th class="px-6 py-4 border-b">ชื่อ LINE</th>
                 <th class="px-6 py-4 border-b">เบอร์โทร</th>
                 <th class="px-6 py-4 border-b">ตำแหน่ง</th>
@@ -114,13 +128,24 @@
               <tr v-for="staff in staffList" :key="staff.id" class="hover:bg-slate-50 transition" :class="{ 'opacity-50': !staff.isActive }">
                 <td class="px-6 py-4 font-bold text-slate-800">
                   <template v-if="editingId === staff.id">
-                    <input v-model="editName" type="text" class="px-2 py-1 border rounded text-sm w-full" @keyup.enter="saveEditName(staff)" @keyup.escape="editingId = null" />
+                    <input v-model="editName" type="text" class="px-2 py-1 border rounded text-sm w-full" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
                   </template>
                   <template v-else>{{ staff.name }}</template>
                 </td>
+                <td class="px-6 py-4 text-xs text-gray-400 font-mono">{{ staff.lineUserId }}</td>
                 <td class="px-6 py-4 text-sm text-slate-600">{{ staff.lineDisplayName || '-' }}</td>
-                <td class="px-6 py-4 text-xs font-mono">{{ staff.phone || '-' }}</td>
-                <td class="px-6 py-4 text-xs text-slate-500">{{ staff.position || '-' }}</td>
+                <td class="px-6 py-4 text-xs font-mono">
+                  <template v-if="editingId === staff.id">
+                    <input v-model="editPhone" type="text" class="px-2 py-1 border rounded text-sm w-full font-mono" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
+                  </template>
+                  <template v-else>{{ staff.phone || '-' }}</template>
+                </td>
+                <td class="px-6 py-4 text-xs text-slate-500">
+                  <template v-if="editingId === staff.id">
+                    <input v-model="editPosition" type="text" class="px-2 py-1 border rounded text-sm w-full" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
+                  </template>
+                  <template v-else>{{ staff.position || '-' }}</template>
+                </td>
                 <td class="px-6 py-4">
                   <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide"
                         :class="staff.role === 'Teacher' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'">
@@ -139,11 +164,11 @@
                 </td>
                 <td class="px-6 py-4 text-center">
                   <template v-if="staff.isActive">
-                    <button v-if="editingId !== staff.id" @click="startEditName(staff)" class="text-slate-600 hover:text-slate-800 text-xs font-medium px-2 py-1 rounded hover:bg-slate-50 transition">
-                      แก้ไขชื่อ
+                    <button v-if="editingId !== staff.id" @click="startEdit(staff)" class="text-slate-600 hover:text-slate-800 text-xs font-medium px-2 py-1 rounded hover:bg-slate-50 transition">
+                      แก้ไข
                     </button>
                     <template v-else>
-                      <button @click="saveEditName(staff)" class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 rounded hover:bg-emerald-50 transition">
+                      <button @click="saveEdit(staff)" class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 rounded hover:bg-emerald-50 transition">
                         บันทึก
                       </button>
                       <button @click="editingId = null" class="text-gray-500 text-xs font-medium px-2 py-1 rounded hover:bg-gray-50 transition ml-1">
@@ -197,6 +222,8 @@ const newStaff = ref({ lineUserId: '', name: '', role: 'Teacher', phone: '', pos
 
 const editingId = ref(null);
 const editName = ref('');
+const editPhone = ref('');
+const editPosition = ref('');
 
 const resetForm = () => {
   newStaff.value = { lineUserId: '', name: '', role: 'Teacher', phone: '', position: '', isVisibleInDirectory: true };
@@ -290,20 +317,22 @@ const toggleDirectory = async (staff) => {
   }
 };
 
-const startEditName = (staff) => {
+const startEdit = (staff) => {
   editingId.value = staff.id;
   editName.value = staff.name;
+  editPhone.value = staff.phone || '';
+  editPosition.value = staff.position || '';
 };
 
-const saveEditName = async (staff) => {
+const saveEdit = async (staff) => {
   if (!editName.value.trim()) return;
   try {
     const token = getAccessToken();
-    await updateStaff(staff.id, { name: editName.value.trim() }, token);
+    await updateStaff(staff.id, { name: editName.value.trim(), phone: editPhone.value, position: editPosition.value }, token);
     editingId.value = null;
     await loadStaff();
   } catch (err) {
-    alert('แก้ไขชื่อไม่สำเร็จ: ' + (err.message || ''));
+    alert('แก้ไขไม่สำเร็จ: ' + (err.message || ''));
   }
 };
 
