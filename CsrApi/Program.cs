@@ -360,11 +360,15 @@ app.MapGet("/api/directory", async (HttpContext context, IStaffRepository staffR
     return result.Match(
         Right: staff =>
         {
+            var teachers = staff
+                .Where(s => s.IsActive && s.Role == "Teacher" && s.IsVisibleInDirectory)
+                .Select(s => new { s.Id, s.Name, s.Phone, s.Position })
+                .ToList();
             var parentNetwork = staff
                 .Where(s => s.IsActive && s.Role == "ParentNetworkStaff")
                 .Select(s => new { s.Id, s.Name })
                 .ToList();
-            return Results.Ok(new { parentNetwork });
+            return Results.Ok(new { teachers, parentNetwork });
         },
         Left: err => Results.StatusCode(err.StatusCode)
     );

@@ -50,6 +50,9 @@ public class StaffRepository : IStaffRepository
                 LineUserId TEXT UNIQUE,
                 Role TEXT NOT NULL,
                 Name TEXT,
+                Phone TEXT,
+                Position TEXT,
+                IsVisibleInDirectory INTEGER NOT NULL DEFAULT 1,
                 IsActive INTEGER NOT NULL DEFAULT 1,
                 CreatedAt TEXT NOT NULL DEFAULT (datetime('now'))
             );";
@@ -59,6 +62,9 @@ public class StaffRepository : IStaffRepository
         // Migration: add columns if they don't exist (for existing databases)
         try { await connection.ExecuteAsync("ALTER TABLE StaffUsers ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1"); } catch { }
         try { await connection.ExecuteAsync("ALTER TABLE StaffUsers ADD COLUMN CreatedAt TEXT NOT NULL DEFAULT (datetime('now'))"); } catch { }
+        try { await connection.ExecuteAsync("ALTER TABLE StaffUsers ADD COLUMN Phone TEXT"); } catch { }
+        try { await connection.ExecuteAsync("ALTER TABLE StaffUsers ADD COLUMN Position TEXT"); } catch { }
+        try { await connection.ExecuteAsync("ALTER TABLE StaffUsers ADD COLUMN IsVisibleInDirectory INTEGER NOT NULL DEFAULT 1"); } catch { }
     }
 
     public async Task<Either<AppError, StaffUser>> GetStaffByLineIdAsync(string lineUserId)
@@ -125,11 +131,14 @@ public class StaffRepository : IStaffRepository
             using var connection = GetConnection();
 
             var sql = @"
-                INSERT INTO StaffUsers (Id, LineUserId, Role, Name, IsActive, CreatedAt)
-                VALUES (@Id, @LineUserId, @Role, @Name, @IsActive, @CreatedAt)
+                INSERT INTO StaffUsers (Id, LineUserId, Role, Name, Phone, Position, IsVisibleInDirectory, IsActive, CreatedAt)
+                VALUES (@Id, @LineUserId, @Role, @Name, @Phone, @Position, @IsVisibleInDirectory, @IsActive, @CreatedAt)
                 ON CONFLICT(LineUserId) DO UPDATE SET
                     Role = excluded.Role,
                     Name = excluded.Name,
+                    Phone = excluded.Phone,
+                    Position = excluded.Position,
+                    IsVisibleInDirectory = excluded.IsVisibleInDirectory,
                     IsActive = excluded.IsActive;";
 
             var result = await connection.ExecuteAsync(sql, new
@@ -138,6 +147,9 @@ public class StaffRepository : IStaffRepository
                 staff.LineUserId,
                 staff.Role,
                 staff.Name,
+                staff.Phone,
+                staff.Position,
+                staff.IsVisibleInDirectory,
                 staff.IsActive,
                 staff.CreatedAt
             });

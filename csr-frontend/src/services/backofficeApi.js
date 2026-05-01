@@ -49,18 +49,18 @@ export async function fetchStaffList(token) {
   return apiJson('/api/backoffice/staff', token);
 }
 
-export async function createStaff({ lineUserId, name, role }, token) {
+export async function createStaff({ lineUserId, name, role, phone, position, isVisibleInDirectory }, token) {
   return apiJson('/api/backoffice/staff', token, {
     method: 'POST',
-    body: JSON.stringify({ lineUserId, name, role }),
+    body: JSON.stringify({ lineUserId, name, role, phone, position, isVisibleInDirectory }),
     headers: { 'Content-Type': 'application/json' }
   });
 }
 
-export async function updateStaff(id, { role, name }, token) {
+export async function updateStaff(id, { role, name, phone, position, isVisibleInDirectory }, token) {
   return apiJson(`/api/backoffice/staff/${id}`, token, {
     method: 'PUT',
-    body: JSON.stringify({ role, name }),
+    body: JSON.stringify({ role, name, phone, position, isVisibleInDirectory }),
     headers: { 'Content-Type': 'application/json' }
   });
 }

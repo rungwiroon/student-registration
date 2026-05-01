@@ -409,6 +409,9 @@ public static class BackofficeEndpoints
                 s.LineUserId,
                 s.Role,
                 s.Name,
+                s.Phone,
+                s.Position,
+                s.IsVisibleInDirectory,
                 LineDisplayName = lineNames.GetValueOrDefault(s.LineUserId),
                 s.IsActive,
                 CreatedAt = s.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -434,6 +437,9 @@ public static class BackofficeEndpoints
                 LineUserId = req.LineUserId,
                 Role = req.Role,
                 Name = req.Name,
+                Phone = req.Phone ?? string.Empty,
+                Position = req.Position ?? string.Empty,
+                IsVisibleInDirectory = req.IsVisibleInDirectory ?? true,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -463,10 +469,13 @@ public static class BackofficeEndpoints
 
             if (req.Role != null) existing.Role = req.Role;
             if (req.Name != null) existing.Name = req.Name;
+            if (req.Phone != null) existing.Phone = req.Phone;
+            if (req.Position != null) existing.Position = req.Position;
+            if (req.IsVisibleInDirectory.HasValue) existing.IsVisibleInDirectory = req.IsVisibleInDirectory.Value;
 
             var result = await staffRepo.UpsertStaffUserAsync(existing);
             return result.Match(
-                Right: _ => Results.Ok(new { existing.Id, existing.LineUserId, existing.Role, existing.Name }),
+                Right: _ => Results.Ok(new { existing.Id, existing.LineUserId, existing.Role, existing.Name, existing.Phone, existing.Position, existing.IsVisibleInDirectory }),
                 Left: err => Results.StatusCode(err.StatusCode)
             );
         });
@@ -542,11 +551,17 @@ public static class BackofficeEndpoints
         public string LineUserId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Position { get; set; }
+        public bool? IsVisibleInDirectory { get; set; }
     }
 
     public class UpdateStaffRequest
     {
         public string? Role { get; set; }
         public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public string? Position { get; set; }
+        public bool? IsVisibleInDirectory { get; set; }
     }
 }

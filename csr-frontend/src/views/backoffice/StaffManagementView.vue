@@ -30,6 +30,20 @@
               <option value="ParentNetworkStaff">ParentNetworkStaff</option>
             </select>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
+            <input v-model="newStaff.phone" type="text" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm" placeholder="08xxxxxxxx" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label>
+            <input v-model="newStaff.position" type="text" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm" placeholder="ครูที่ปรึกษาคนที่ 1" />
+          </div>
+          <div class="flex items-center pt-6">
+            <label class="flex items-center cursor-pointer">
+              <input v-model="newStaff.isVisibleInDirectory" type="checkbox" class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" />
+              <span class="ml-2 text-sm text-gray-700">แสดงในรายชื่อติดต่อ</span>
+            </label>
+          </div>
         </div>
         <div class="flex items-center space-x-3 mt-4">
           <button @click="handleAdd" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-600 transition" :disabled="saving">
@@ -50,6 +64,9 @@
                 <p class="font-bold text-slate-800">{{ staff.name }}</p>
                 <p class="text-xs text-gray-500 mt-1 font-mono">{{ staff.lineUserId }}</p>
                 <p v-if="staff.lineDisplayName" class="text-xs text-slate-500 mt-0.5">LINE: {{ staff.lineDisplayName }}</p>
+                <p v-if="staff.phone" class="text-xs text-slate-500 mt-0.5"><span class="font-medium">เบอร์:</span> {{ staff.phone }}</p>
+                <p v-if="staff.position" class="text-xs text-slate-500 mt-0.5"><span class="font-medium">ตำแหน่ง:</span> {{ staff.position }}</p>
+                <p class="text-xs mt-0.5" :class="staff.isVisibleInDirectory ? 'text-emerald-600' : 'text-gray-400'">{{ staff.isVisibleInDirectory ? '📂 แสดงในรายชื่อติดต่อ' : '🙈 ซ่อนในรายชื่อติดต่อ' }}</p>
               </div>
               <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wide"
                     :class="staff.isActive ? (staff.role === 'Teacher' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700') : 'bg-gray-100 text-gray-500'">
@@ -60,7 +77,11 @@
               <button @click="startEditName(staff)" class="text-xs text-slate-600 hover:underline">แก้ไขชื่อ</button>
               <span class="text-gray-300">|</span>
               <button @click="toggleRole(staff)" class="text-xs text-blue-600 hover:underline">
-                เปลี่ยนเป็น {{ staff.role === 'Teacher' ? 'ParentNetworkStaff' : 'Teacher' }}
+                เปลี่ยนบทบาท
+              </button>
+              <span class="text-gray-300">|</span>
+              <button @click="toggleDirectory(staff)" class="text-xs" :class="staff.isVisibleInDirectory ? 'text-gray-500 hover:underline' : 'text-emerald-600 hover:underline'">
+                {{ staff.isVisibleInDirectory ? 'ซ่อน' : 'แสดง' }}
               </button>
               <span class="text-gray-300">|</span>
               <button @click="handleDelete(staff)" class="text-xs text-red-500 hover:underline">ปิดใช้งาน</button>
@@ -81,10 +102,11 @@
               <tr>
                 <th class="px-6 py-4 border-b">ชื่อ</th>
                 <th class="px-6 py-4 border-b">ชื่อ LINE</th>
-                <th class="px-6 py-4 border-b">LINE User ID</th>
+                <th class="px-6 py-4 border-b">เบอร์โทร</th>
+                <th class="px-6 py-4 border-b">ตำแหน่ง</th>
                 <th class="px-6 py-4 border-b">บทบาท</th>
                 <th class="px-6 py-4 border-b">สถานะ</th>
-                <th class="px-6 py-4 border-b">วันที่สร้าง</th>
+                <th class="px-6 py-4 border-b">แสดงในรายชื่อ</th>
                 <th class="px-6 py-4 border-b text-center">จัดการ</th>
               </tr>
             </thead>
@@ -97,7 +119,8 @@
                   <template v-else>{{ staff.name }}</template>
                 </td>
                 <td class="px-6 py-4 text-sm text-slate-600">{{ staff.lineDisplayName || '-' }}</td>
-                <td class="px-6 py-4 font-mono text-xs">{{ staff.lineUserId }}</td>
+                <td class="px-6 py-4 text-xs font-mono">{{ staff.phone || '-' }}</td>
+                <td class="px-6 py-4 text-xs text-slate-500">{{ staff.position || '-' }}</td>
                 <td class="px-6 py-4">
                   <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide"
                         :class="staff.role === 'Teacher' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'">
@@ -109,7 +132,11 @@
                     {{ staff.isActive ? 'ใช้งาน' : 'ปิดใช้งาน' }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-xs text-gray-400">{{ formatDate(staff.createdAt) }}</td>
+                <td class="px-6 py-4">
+                  <span class="text-xs" :class="staff.isVisibleInDirectory ? 'text-emerald-600' : 'text-gray-400'">
+                    {{ staff.isVisibleInDirectory ? 'แสดง' : 'ซ่อน' }}
+                  </span>
+                </td>
                 <td class="px-6 py-4 text-center">
                   <template v-if="staff.isActive">
                     <button v-if="editingId !== staff.id" @click="startEditName(staff)" class="text-slate-600 hover:text-slate-800 text-xs font-medium px-2 py-1 rounded hover:bg-slate-50 transition">
@@ -125,6 +152,9 @@
                     </template>
                     <button @click="toggleRole(staff)" class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition ml-2">
                       เปลี่ยนบทบาท
+                    </button>
+                    <button @click="toggleDirectory(staff)" class="text-xs font-medium px-2 py-1 rounded transition ml-2" :class="staff.isVisibleInDirectory ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'">
+                      {{ staff.isVisibleInDirectory ? 'ซ่อน' : 'แสดง' }}
                     </button>
                     <button @click="handleDelete(staff)" class="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition ml-2">
                       ปิดใช้งาน
@@ -163,13 +193,13 @@ const saving = ref(false);
 const formError = ref('');
 
 const showAddForm = ref(false);
-const newStaff = ref({ lineUserId: '', name: '', role: 'Teacher' });
+const newStaff = ref({ lineUserId: '', name: '', role: 'Teacher', phone: '', position: '', isVisibleInDirectory: true });
 
 const editingId = ref(null);
 const editName = ref('');
 
 const resetForm = () => {
-  newStaff.value = { lineUserId: '', name: '', role: 'Teacher' };
+  newStaff.value = { lineUserId: '', name: '', role: 'Teacher', phone: '', position: '', isVisibleInDirectory: true };
   formError.value = '';
 };
 
@@ -244,6 +274,19 @@ const toggleRole = async (staff) => {
     await loadStaff();
   } catch (err) {
     alert('เปลี่ยนบทบาทไม่สำเร็จ: ' + (err.message || ''));
+  }
+};
+
+const toggleDirectory = async (staff) => {
+  const next = !staff.isVisibleInDirectory;
+  const action = next ? 'แสดง' : 'ซ่อน';
+  if (!confirm(`${action} ${staff.name} ในรายชื่อติดต่อ?`)) return;
+  try {
+    const token = getAccessToken();
+    await updateStaff(staff.id, { isVisibleInDirectory: next }, token);
+    await loadStaff();
+  } catch (err) {
+    alert('เปลี่ยนสถานะไม่สำเร็จ: ' + (err.message || ''));
   }
 };
 
