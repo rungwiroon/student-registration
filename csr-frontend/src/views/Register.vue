@@ -198,7 +198,7 @@
       </div>
 
       <button type="submit" :disabled="isSubmitting" class="w-full rounded-xl bg-action-primary px-4 py-3 font-bold text-white shadow-lg transition-all hover:bg-action-primary-hover hover:shadow-xl disabled:opacity-50">
-        <span v-if="isSubmitting">พริบตาเดียว... กำลังบันทึกข้อมูล 🚀</span>
+        <span v-if="isSubmitting">กำลังบันทึกข้อมูล 🚀</span>
         <span v-else>{{ submitLabel }}</span>
       </button>
     </form>

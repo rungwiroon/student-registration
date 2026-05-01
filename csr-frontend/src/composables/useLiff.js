@@ -1,20 +1,24 @@
 import { ref } from 'vue';
 import liff from '@line/liff';
 
-export function useLiff() {
-  const isReady = ref(false);
-  const profile = ref(null);
-  const accessToken = ref('');
-  const error = ref(null);
-  const useMockLiff = import.meta.env.VITE_USE_MOCK_LIFF === 'true';
+const isReady = ref(false);
+const profile = ref(null);
+const accessToken = ref('');
+const error = ref(null);
+const isInClient = ref(false);
+const useMockLiff = import.meta.env.VITE_USE_MOCK_LIFF === 'true';
 
+export function useLiff() {
   const initLiff = async () => {
+    if (isReady.value) return;
+
     try {
       const liffId = import.meta.env.VITE_LIFF_ID;
 
       if (useMockLiff) {
         profile.value = { userId: 'mock-line-uid-1234', displayName: 'Mock Parent' };
         accessToken.value = 'mock-token';
+        isInClient.value = false;
         isReady.value = true;
         return;
       }
@@ -24,6 +28,7 @@ export function useLiff() {
       }
 
       await liff.init({ liffId });
+      isInClient.value = liff.isInClient();
       if (!liff.isLoggedIn()) {
         liff.login();
       } else {
@@ -40,5 +45,13 @@ export function useLiff() {
 
   const getAccessToken = () => accessToken.value;
 
-  return { initLiff, isReady, profile, error, getAccessToken };
+  const closeWindow = () => {
+    if (useMockLiff) {
+      console.log('[Mock LIFF] closeWindow() called');
+      return;
+    }
+    liff.closeWindow();
+  };
+
+  return { initLiff, isReady, profile, error, getAccessToken, isInClient, closeWindow };
 }

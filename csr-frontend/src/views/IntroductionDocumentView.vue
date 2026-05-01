@@ -1,7 +1,7 @@
 <template>
   <div class="document-container">
     <!-- Local Header -->
-    <FrontofficePageHeader title="เอกสารแนะนำนักเรียนและครอบครัว">
+    <FrontofficePageHeader title="เอกสารแนะนำนักเรียนและครอบครัว" :showHome="false">
       <template #actions>
         <button @click="printDocument" class="bg-white text-emerald-600 px-3 py-1 rounded-lg text-sm font-bold hover:bg-emerald-50 transition">
           พิมพ์ / บันทึก PDF

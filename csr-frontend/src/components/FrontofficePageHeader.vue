@@ -15,7 +15,19 @@
     <span class="font-bold text-center truncate px-2">{{ title }}</span>
 
     <button
-      v-if="showHome"
+      v-if="isInClient"
+      @click="closeWindow()"
+      class="flex items-center gap-1 text-sm font-bold hover:opacity-80 transition shrink-0"
+      title="ปิด"
+      aria-label="ปิด"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+    <slot v-else-if="$slots.actions" name="actions"></slot>
+    <button
+      v-else-if="showHome"
       @click="goHome()"
       class="flex items-center gap-1 text-sm font-bold hover:opacity-80 transition shrink-0"
     >
@@ -24,14 +36,13 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     </button>
-    <slot v-else name="actions">
-      <span class="w-16"></span>
-    </slot>
+    <span v-else class="w-16"></span>
   </header>
 </template>
 
 <script setup>
 import { useSafeNavigation } from '../composables/useSafeNavigation'
+import { useLiff } from '../composables/useLiff'
 
 defineProps({
   title: {
@@ -53,4 +64,5 @@ defineProps({
 })
 
 const { goBackOrFallback, goHome } = useSafeNavigation()
+const { isInClient, closeWindow } = useLiff()
 </script>
