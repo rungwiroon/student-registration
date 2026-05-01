@@ -16,6 +16,9 @@
         <router-link v-if="canManageStaff()" to="/backoffice/staff" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-white/15 text-white font-bold">
           จัดการเจ้าหน้าที่
         </router-link>
+        <router-link v-if="canManageStaff()" to="/backoffice/registered-users" class="block py-2 px-4 rounded-lg text-white/85 transition hover:bg-white/8 hover:text-white" active-class="bg-white/15 text-white font-bold">
+          ผู้ใช้ที่ลงทะเบียน
+        </router-link>
       </nav>
       <!-- Role badge in sidebar -->
       <div class="p-4 bg-backoffice-sidebar-muted border-t border-white/10">
@@ -71,6 +74,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           เจ้าหน้าที่
+        </router-link>
+        <router-link v-if="canManageStaff()" to="/backoffice/registered-users" class="flex flex-col items-center py-2 px-4 flex-1 text-center hover:text-text-primary transition" active-class="text-action-primary font-bold bg-brand-primary-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          ผู้ใช้
         </router-link>
       </nav>
     </div>

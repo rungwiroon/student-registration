@@ -85,6 +85,11 @@ const routes = [
         path: 'staff',
         name: 'BackofficeStaff',
         component: () => import('../views/backoffice/StaffManagementView.vue')
+      },
+      {
+        path: 'registered-users',
+        name: 'BackofficeRegisteredUsers',
+        component: () => import('../views/backoffice/RegisteredUsersView.vue')
       }
     ]
   }

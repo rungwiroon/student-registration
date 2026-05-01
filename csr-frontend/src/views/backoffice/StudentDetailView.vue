@@ -104,6 +104,10 @@
                 <p><span class="text-gray-500">ชื่อ-นามสกุล:</span> <span class="font-medium ml-2">{{ g.name || '-' }}</span></p>
                 <p><span class="text-gray-500">เบอร์โทรศัพท์:</span> <span class="font-medium ml-2">{{ g.phone || '-' }}</span></p>
                 <p><span class="text-gray-500">อาชีพ:</span> <span class="font-medium ml-2">{{ g.occupation || '-' }}</span></p>
+                <p><span class="text-gray-500">LINE User ID:</span>
+                  <span class="font-medium ml-2 font-mono text-xs">{{ g.lineUserId || '-' }}</span>
+                  <button v-if="g.lineUserId" @click="copyText(g.lineUserId)" class="ml-2 text-xs" :class="copiedId === g.lineUserId ? 'text-emerald-600 font-medium' : 'text-blue-600 underline'">{{ copiedId === g.lineUserId ? 'คัดลอกแล้ว' : 'คัดลอก' }}</button>
+                </p>
               </div>
             </div>
           <div v-if="detail.guardians.length === 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-gray-500">
@@ -140,6 +144,17 @@ const savingStatus = ref(false);
 const isEditingNote = ref(false);
 const newNote = ref('');
 const savingNote = ref(false);
+const copiedId = ref(null);
+
+const copyText = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    copiedId.value = text;
+    setTimeout(() => { if (copiedId.value === text) copiedId.value = null; }, 1200);
+  } catch {
+    // ignore
+  }
+};
 
 const formatRelation = (rel) => {
   if (rel === 'Father') return 'บิดา';

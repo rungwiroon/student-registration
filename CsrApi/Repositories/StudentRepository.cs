@@ -23,6 +23,7 @@ public interface IStudentRepository
     Task<Either<AppError, Unit>> UpsertGuardianAsync(Guardian guardian);
     Task<Either<AppError, Unit>> UpsertGuardiansAsync(IEnumerable<Guardian> guardians);
     Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync();
+    Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansWithLineUserIdAsync();
     Task InitializeDatabaseAsync();
 }
 
@@ -447,6 +448,21 @@ public class StudentRepository : IStudentRepository
             var guardians = await connection.QueryAsync<Guardian>(
                 "SELECT * FROM Guardians WHERE StudentId = @StudentId ORDER BY GuardianOrder ASC",
                 new { StudentId = studentId.ToString() });
+            return guardians.ToList();
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansWithLineUserIdAsync()
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var guardians = await connection.QueryAsync<Guardian>(
+                "SELECT * FROM Guardians WHERE LineUserId IS NOT NULL AND LineUserId != '' ORDER BY GuardianOrder ASC");
             return guardians.ToList();
         }
         catch (Exception ex)

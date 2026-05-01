@@ -40,6 +40,10 @@ export async function fetchGuardianPhotoBlob(id, order, token) {
   return apiBlob(`/api/backoffice/students/${id}/guardians/${order}/photo`, token);
 }
 
+export async function fetchRegisteredUsers(token) {
+  return apiJson('/api/backoffice/registered-users', token);
+}
+
 // Staff management
 export async function fetchStaffList(token) {
   return apiJson('/api/backoffice/staff', token);

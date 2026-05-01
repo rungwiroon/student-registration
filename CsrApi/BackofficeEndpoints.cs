@@ -142,6 +142,32 @@ public static class BackofficeEndpoints
             );
         });
 
+        // GET /api/backoffice/registered-users — list guardians with LineUserId (Teacher-only)
+        group.MapGet("/registered-users", async (HttpContext ctx, IStudentRepository repo, IEncryptionService encryption) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            if (!policy.CanManageStaff(ctx))
+                return Results.StatusCode(403);
+
+            var result = await repo.GetGuardiansWithLineUserIdAsync();
+            return result.Match(
+                Right: guardians =>
+                {
+                    var list = guardians.Select(g => new
+                    {
+                        LineUserId = g.LineUserId,
+                        Name = string.IsNullOrEmpty(g.EncryptedName) ? "" : encryption.Decrypt(g.EncryptedName!),
+                        Phone = string.IsNullOrEmpty(g.EncryptedPhone) ? "" : encryption.Decrypt(g.EncryptedPhone!),
+                        RelationType = g.RelationType,
+                        GuardianOrder = g.GuardianOrder,
+                        StudentId = g.StudentId
+                    });
+                    return Results.Ok(list);
+                },
+                Left: err => Results.StatusCode(err.StatusCode)
+            );
+        });
+
         // GET /api/backoffice/students/export.xlsx — export student list as Excel
         group.MapGet("/students/export.xlsx", async (HttpContext ctx, string? search, IBackofficeStudentExportService exportService, CancellationToken cancellationToken) =>
         {
@@ -198,6 +224,7 @@ public static class BackofficeEndpoints
                         Name = string.IsNullOrEmpty(g.EncryptedName) ? "" : encryption.Decrypt(g.EncryptedName!),
                         Phone = string.IsNullOrEmpty(g.EncryptedPhone) ? "" : encryption.Decrypt(g.EncryptedPhone!),
                         Occupation = g.Occupation,
+                        LineUserId = g.LineUserId,
                         PhotoFileName = g.PhotoFileName
                     })
                 });
