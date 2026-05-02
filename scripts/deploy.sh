@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # ── Config ──────────────────────────────────────────────
-VPS_HOST="${DEPLOY_HOST:-YOUR_VPS_IP}"
-VPS_USER="${DEPLOY_USER:-YOUR_VPS_USER}"
+VPS_HOST="${DEPLOY_HOST:?DEPLOY_HOST env var required}"
+VPS_USER="${DEPLOY_USER:?DEPLOY_USER env var required}"
 VPS_DIR="~/skn50-smte"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 IMAGE_API="csr-api:latest"
