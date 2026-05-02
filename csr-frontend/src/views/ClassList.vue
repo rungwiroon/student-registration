@@ -47,13 +47,13 @@ import { useLiff } from '../composables/useLiff';
 const students = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, login } = useLiff();
 
 onMounted(async () => {
   try {
-    await initLiff();
-
     const token = getAccessToken();
+    if (!token) { login(); return; }
+
     if (!token) {
       error.value = 'ไม่พบ LINE access token สำหรับเรียกใช้งาน API';
       return;

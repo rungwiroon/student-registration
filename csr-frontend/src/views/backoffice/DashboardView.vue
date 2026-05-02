@@ -38,7 +38,7 @@ import { fetchDashboard } from '../../services/backofficeApi';
 import { useLiff } from '../../composables/useLiff';
 import { useRouter } from 'vue-router';
 
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, login } = useLiff();
 const router = useRouter();
 
 const loading = ref(true);
@@ -46,8 +46,8 @@ const error = ref('');
 const summary = ref(null);
 
 onMounted(async () => {
-  await initLiff();
   const token = getAccessToken();
+  if (!token) { login(); return; }
   if (!token) {
     router.push('/');
     return;

@@ -109,7 +109,7 @@ import { useLiff } from '../../composables/useLiff';
 import { useBackofficeAuth } from '../../composables/useBackofficeAuth';
 import { useRouter } from 'vue-router';
 
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, login } = useLiff();
 const { loadCurrentUser, canViewFullProfile, canExportStudentList } = useBackofficeAuth();
 const router = useRouter();
 
@@ -149,8 +149,8 @@ async function handleExport() {
 }
 
 onMounted(async () => {
-  await initLiff();
   const token = getAccessToken();
+  if (!token) { login(); return; }
   if (!token) {
     router.push('/');
     return;

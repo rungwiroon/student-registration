@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>LIFF Test</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: monospace; padding: 16px; background: #111; color: #0f0; font-size: 14px; line-height: 1.6; }
+    .log { border-bottom: 1px solid #333; padding: 2px 0; }
+    .error { color: #f44; }
+    .warn { color: #fa0; }
+    .info { color: #0af; }
+    #status { position: sticky; top: 0; background: #111; padding: 8px 0; border-bottom: 2px solid #0f0; font-weight: bold; }
+    button { background: #0f0; color: #000; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div id="status">Status: waiting...</div>
+  <button onclick="runTest()">Run Test</button>
+  <button onclick="location.reload()">Reload Page</button>
+  <button onclick="clearLogs()">Clear Logs</button>
+  <div id="logs"></div>
+
+  <script>
+    const logsEl = document.getElementById('logs');
+    const statusEl = document.getElementById('status');
+    const STORAGE_KEY = 'liff_test_logs_v2';
+
+    function log(msg, type = 'log') {
+      const time = new Date().toLocaleTimeString('th-TH', { hour12: false });
+      const div = document.createElement('div');
+      div.className = `log ${type}`;
+      div.textContent = `${time} [${type.toUpperCase()}] ${msg}`;
+      logsEl.appendChild(div);
+      logsEl.scrollTop = logsEl.scrollHeight;
+      saveLogs();
+    }
+
+    function saveLogs() {
+      try {
+        const text = Array.from(logsEl.children).map(d => d.textContent).join('\n');
+        sessionStorage.setItem(STORAGE_KEY, text.slice(-5000));
+      } catch {}
+    }
+
+    function loadLogs() {
+      try {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          stored.split('\n').forEach(line => {
+            if (!line) return;
+            const div = document.createElement('div');
+            div.className = 'log';
+            div.textContent = line;
+            logsEl.appendChild(div);
+          });
+        }
+      } catch {}
+    }
+
+    function clearLogs() {
+      logsEl.innerHTML = '';
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = `Status: ${text}`;
+    }
+
+    async function runTest() {
+      clearLogs();
+      log('=== TEST START ===');
+      log('URL: ' + location.href);
+      log('UA: ' + navigator.userAgent.slice(0, 80));
+
+      const url = new URL(location.href);
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      const liffClientId = url.searchParams.get('liffClientId');
+      log(`URL params: code=${!!code} state=${!!state} liffClientId=${!!liffClientId}`);
+
+      // Check SDK availability
+      log('Checking window.liff...');
+      if (typeof window === 'undefined' || !window.liff) {
+        log('window.liff NOT FOUND', 'error');
+        setStatus('SDK not found');
+        return;
+      }
+      log('window.liff found, init fn=' + (typeof window.liff.init));
+      log('isInClient fn=' + (typeof window.liff.isInClient));
+      log('isLoggedIn fn=' + (typeof window.liff.isLoggedIn));
+      log('getAccessToken fn=' + (typeof window.liff.getAccessToken));
+      log('getProfile fn=' + (typeof window.liff.getProfile));
+      log('closeWindow fn=' + (typeof window.liff.closeWindow));
+
+      const liffId = '2009916202-YGxGSKdi';
+      log('liffId=' + liffId);
+
+      // Pre-check
+      let preCheck = 'unknown';
+      try {
+        window.liff.isLoggedIn();
+        preCheck = 'responds (may be initialized)';
+      } catch (e) {
+        preCheck = 'not initialized (' + e.message + ')';
+      }
+      log('Pre-check: ' + preCheck, 'info');
+
+      // Init with keepalive
+      let tick = 0;
+      const keepalive = setInterval(() => {
+        tick++;
+        log('keepalive tick ' + tick, 'warn');
+      }, 500);
+
+      const initTimeoutMs = 25000;
+      let initResult = 'unknown';
+      try {
+        log('Calling liff.init() with ' + initTimeoutMs + 'ms timeout...');
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('TIMEOUT')), initTimeoutMs);
+          window.liff.init({ liffId })
+            .then(() => { clearTimeout(timer); resolve(); })
+            .catch(err => { clearTimeout(timer); reject(err); });
+        });
+        initResult = 'OK';
+        log('liff.init() resolved', 'info');
+      } catch (err) {
+        initResult = 'FAILED: ' + err.message;
+        log('liff.init() error: ' + err.message, 'error');
+        if (err.message.includes('initialized')) {
+          initResult = 'OK (already initialized)';
+          log('Treating "already initialized" as success', 'info');
+        }
+      } finally {
+        clearInterval(keepalive);
+      }
+
+      // Post-init checks
+      log('--- Post-init checks ---');
+
+      let isInClient = null;
+      try { isInClient = window.liff.isInClient(); } catch (e) { isInClient = 'ERROR: ' + e.message; }
+      log('isInClient=' + isInClient);
+
+      let isLoggedIn = null;
+      try {
+        isLoggedIn = window.liff.isLoggedIn();
+        log('isLoggedIn=' + isLoggedIn);
+      } catch (e) {
+        isLoggedIn = 'ERROR: ' + e.message;
+        log('isLoggedIn error: ' + e.message, 'error');
+      }
+
+      // Retry isLoggedIn
+      if (!isLoggedIn) {
+        for (let i = 0; i < 5 && !isLoggedIn; i++) {
+          await new Promise(r => setTimeout(r, 300));
+          try {
+            isLoggedIn = window.liff.isLoggedIn();
+            log('isLoggedIn retry #' + i + '=' + isLoggedIn);
+          } catch (e) {
+            log('isLoggedIn retry #' + i + ' error: ' + e.message, 'error');
+          }
+        }
+      }
+
+      if (!isLoggedIn) {
+        log('User NOT logged in', 'warn');
+        setStatus('Not logged in');
+        log('Calling liff.login()...');
+        try {
+          window.liff.login();
+          log('liff.login() called (redirect expected)', 'info');
+        } catch (e) {
+          log('liff.login() error: ' + e.message, 'error');
+        }
+        return;
+      }
+
+      log('User IS logged in', 'info');
+
+      let token = null;
+      try {
+        token = window.liff.getAccessToken();
+        log('getAccessToken=' + (token ? 'present (' + token.slice(0, 20) + '...)' : 'null'));
+      } catch (e) {
+        log('getAccessToken error: ' + e.message, 'error');
+      }
+
+      if (!token) {
+        for (let i = 0; i < 10 && !token; i++) {
+          await new Promise(r => setTimeout(r, 300));
+          try {
+            token = window.liff.getAccessToken();
+            log('token retry #' + i + '=' + (token ? 'present' : 'null'));
+          } catch (e) {
+            log('token retry #' + i + ' error: ' + e.message, 'error');
+          }
+        }
+      }
+
+      if (!token) {
+        log('No token after retries', 'error');
+        setStatus('No token');
+        return;
+      }
+
+      let profile = null;
+      try {
+        profile = await window.liff.getProfile();
+        log('getProfile OK: userId=' + profile.userId + ' name=' + profile.displayName, 'info');
+      } catch (e) {
+        log('getProfile error: ' + e.message, 'error');
+      }
+
+      // Clean URL
+      if (window.history.replaceState && window.location.search) {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('code');
+        cleanUrl.searchParams.delete('state');
+        cleanUrl.searchParams.delete('liffClientId');
+        cleanUrl.searchParams.delete('liffRedirectUri');
+        window.history.replaceState({}, document.title, cleanUrl.toString());
+        log('Cleaned auth params from URL');
+      }
+
+      setStatus(profile ? 'OK: ' + profile.displayName : 'OK but no profile');
+      log('=== TEST COMPLETE ===');
+    }
+
+    // Auto-run on load
+    window.addEventListener('load', () => {
+      loadLogs();
+      log('Page loaded. Click "Run Test" to start.');
+      if (new URLSearchParams(location.search).has('auto')) {
+        runTest();
+      }
+    });
+  </script>
+</body>
+</html>

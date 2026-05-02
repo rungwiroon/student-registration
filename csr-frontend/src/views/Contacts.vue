@@ -50,14 +50,14 @@
 import { ref, onMounted } from 'vue';
 import { useLiff } from '../composables/useLiff';
 
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, login } = useLiff();
 const isLoading = ref(true);
 const teachers = ref([]);
 const parentNetwork = ref([]);
 
 onMounted(async () => {
-  await initLiff();
   const token = getAccessToken();
+  if (!token) { login(); return; }
   if (!token) {
     isLoading.value = false;
     return;

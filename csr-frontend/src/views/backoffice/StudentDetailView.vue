@@ -126,7 +126,7 @@ import { useLiff } from '../../composables/useLiff';
 import { useBackofficeAuth } from '../../composables/useBackofficeAuth';
 import { useRouter, useRoute } from 'vue-router';
 
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, login } = useLiff();
 const { loadCurrentUser, canViewPhotos, canUpdateReviewStatus, canEditInternalNote } = useBackofficeAuth();
 const router = useRouter();
 const route = useRoute();
@@ -163,8 +163,8 @@ const formatRelation = (rel) => {
 };
 
 onMounted(async () => {
-  await initLiff();
   const token = getAccessToken();
+  if (!token) { login(); return; }
   if (!token) {
     router.push('/');
     return;

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Loading...</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .title { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+    .subtitle { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+    .error-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 360px;
+      width: 100%;
+      text-align: left;
+      display: none;
+    }
+    .error-box.show { display: block; }
+    .error-box .err-title { font-weight: 600; color: #dc2626; margin-bottom: 8px; }
+    .error-box .err-msg { font-size: 13px; color: #991b1b; word-break: break-word; }
+    .error-box .err-ua { font-size: 11px; color: #991b1b; opacity: 0.7; margin-top: 8px; }
+    .btn {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #22c55e;
+      color: #fff;
+      margin-left: 8px;
+    }
+    #debug {
+      margin-top: 24px;
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: monospace;
+      text-align: left;
+      max-width: 360px;
+      width: 100%;
+    }
+    #debug .line { margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+  <div id="spinner" class="spinner"></div>
+  <p id="title" class="title">กำลังเชื่อมต่อ LINE...</p>
+  <p id="subtitle" class="subtitle">โปรดรอสักครู่</p>
+
+  <div id="errorBox" class="error-box">
+    <p class="err-title">เกิดข้อผิดพลาด</p>
+    <p id="errMsg" class="err-msg"></p>
+    <p id="errUA" class="err-ua"></p>
+    <div style="text-align: center;">
+      <button class="btn btn-primary" onclick="retry()">ลองใหม่</button>
+      <button class="btn btn-secondary" onclick="window.liff?.login?.()">เข้าสู่ระบบ LINE</button>
+    </div>
+  </div>
+
+  <div id="debug"></div>
+
+  <script>
+    const LIFF_ID = '2009916202-YGxGSKdi';
+    const STORAGE_KEYS = {
+      token: 'liff_access_token',
+      userId: 'liff_user_id',
+      displayName: 'liff_display_name',
+      inClient: 'liff_is_in_client'
+    };
+
+    function log(msg) {
+      console.log('[Entry]', msg);
+      const debug = document.getElementById('debug');
+      const line = document.createElement('div');
+      line.className = 'line';
+      line.textContent = new Date().toLocaleTimeString('th-TH', { hour12: false }) + ' ' + msg;
+      debug.appendChild(line);
+    }
+
+    function showError(msg) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('title').textContent = 'เชื่อมต่อไม่สำเร็จ';
+      document.getElementById('subtitle').textContent = 'กรุณาลองใหม่อีกครั้ง';
+      document.getElementById('errMsg').textContent = msg;
+      document.getElementById('errUA').textContent = navigator.userAgent.slice(0, 100);
+      document.getElementById('errorBox').classList.add('show');
+    }
+
+    function clearStorage() {
+      try {
+        Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+      } catch {}
+    }
+
+    function saveToStorage(token, profile, inClient) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.token, token);
+        localStorage.setItem(STORAGE_KEYS.userId, profile?.userId || '');
+        localStorage.setItem(STORAGE_KEYS.displayName, profile?.displayName || '');
+        localStorage.setItem(STORAGE_KEYS.inClient, String(!!inClient));
+      } catch {}
+    }
+
+    async function runInit() {
+      clearStorage();
+      log('URL: ' + location.href);
+
+      const url = new URL(location.href);
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      const liffClientId = url.searchParams.get('liffClientId');
+      const isCallback = !!(code && state && liffClientId);
+      log('isCallback=' + isCallback);
+
+      if (typeof window === 'undefined' || !window.liff || typeof window.liff.init !== 'function') {
+        showError('LIFF SDK not available');
+        return;
+      }
+
+      const timeoutMs = isCallback ? 60000 : 10000;
+      log('init start, timeout=' + timeoutMs);
+
+      try {
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error(`liff.init() timeout (${timeoutMs}ms)`)), timeoutMs);
+          window.liff.init({ liffId: LIFF_ID })
+            .then(() => { clearTimeout(timer); resolve(); })
+            .catch(err => { clearTimeout(timer); reject(err); });
+        });
+        log('init resolved');
+      } catch (err) {
+        // SDK may still finish in background even after timeout
+        // Wait briefly then check if we can recover
+        log('init error: ' + err.message + ', retrying in 1s');
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      // Post-init checks regardless of init() result
+      let inClient = false;
+      try { inClient = window.liff.isInClient(); } catch (e) { log('isInClient error: ' + e.message); }
+      log('isInClient=' + inClient);
+
+      let loggedIn = false;
+      try {
+        loggedIn = window.liff.isLoggedIn();
+      } catch (e) {
+        log('isLoggedIn error: ' + e.message);
+        showError('LIFF not initialized: ' + e.message);
+        return;
+      }
+      log('isLoggedIn=' + loggedIn);
+
+      if (!loggedIn) {
+        log('calling liff.login()');
+        try {
+          window.liff.login();
+        } catch (e) {
+          showError('liff.login() failed: ' + e.message);
+        }
+        return;
+      }
+
+      let token = null;
+      try {
+        token = window.liff.getAccessToken();
+      } catch (e) {
+        log('getAccessToken error: ' + e.message);
+      }
+      if (!token) {
+        for (let i = 0; i < 10 && !token; i++) {
+          await new Promise(r => setTimeout(r, 300));
+          try { token = window.liff.getAccessToken(); } catch {}
+          log('token retry #' + i + '=' + (token ? 'present' : 'null'));
+        }
+      }
+      if (!token) {
+        showError('Failed to get access token');
+        return;
+      }
+      log('token acquired');
+
+      let profile = null;
+      try {
+        profile = await window.liff.getProfile();
+      } catch (e) {
+        log('getProfile error: ' + e.message);
+      }
+      if (profile) {
+        log('profile ok: ' + profile.userId);
+      } else {
+        log('no profile, continuing with token only');
+      }
+
+      saveToStorage(token, profile, inClient);
+      log('saved to localStorage');
+
+      // Clean URL
+      if (window.history.replaceState) {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('code');
+        cleanUrl.searchParams.delete('state');
+        cleanUrl.searchParams.delete('liffClientId');
+        cleanUrl.searchParams.delete('liffRedirectUri');
+        window.history.replaceState({}, document.title, cleanUrl.toString());
+      }
+
+      log('redirecting to /dashboard');
+      window.location.href = '/dashboard';
+    }
+
+    function retry() {
+      document.getElementById('errorBox').classList.remove('show');
+      document.getElementById('spinner').style.display = 'block';
+      document.getElementById('title').textContent = 'กำลังเชื่อมต่อ LINE...';
+      document.getElementById('subtitle').textContent = 'โปรดรอสักครู่';
+      runInit();
+    }
+
+    // Auto-run on load
+    window.addEventListener('load', runInit);
+  </script>
+</body>
+</html>

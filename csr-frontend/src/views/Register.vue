@@ -221,7 +221,7 @@ import '@vuepic/vue-datepicker/dist/main.css';
 
 const router = useRouter();
 const route = useRoute();
-const { initLiff, isReady, getAccessToken } = useLiff();
+const { isReady, getAccessToken, login } = useLiff();
 const {
   form,
   errors,
@@ -271,7 +271,11 @@ const loadExistingProfile = async () => {
 };
 
 onMounted(async () => {
-  await initLiff();
+  const token = getAccessToken();
+  if (!token) {
+    login();
+    return;
+  }
 
   if (isEditMode.value) {
     await loadExistingProfile();

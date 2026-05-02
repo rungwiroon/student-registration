@@ -92,11 +92,11 @@ import { useBackofficeAuth } from '../composables/useBackofficeAuth';
 import { useLiff } from '../composables/useLiff';
 
 const { currentUser, loadCurrentUser, isTeacher, isParentNetworkStaff, canManageStaff } = useBackofficeAuth();
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, login } = useLiff();
 
 onMounted(async () => {
-  await initLiff();
   const token = getAccessToken();
+  if (!token) { login(); return; }
   if (token) {
     await loadCurrentUser(token);
   }

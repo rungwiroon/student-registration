@@ -1,7 +1,24 @@
 <template>
   <div class="space-y-6">
     <div v-if="isLoading" class="text-center text-gray-500 py-10 animate-pulse">
-      กำลังตรวจสอบข้อมูล...
+      <p>กำลังตรวจสอบข้อมูล...</p>
+      <p v-if="isAndroid" class="text-xs mt-2 text-gray-400">เชื่อมต่อ LINE บน Android อาจใช้เวลาสักครู่</p>
+      <button v-if="showReloadButton" @click="reloadPage" class="mt-4 rounded-lg bg-brand-primary text-white px-4 py-2 text-sm font-bold active:scale-95 transition">
+        โหลดใหม่
+      </button>
+    </div>
+
+    <!-- LIFF Error -->
+    <div v-else-if="liffError" class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
+      <p class="font-bold mb-1">LIFF Error</p>
+      <p>{{ liffError.message }}</p>
+      <p class="mt-2 text-xs text-red-500">ua: {{ userAgentSnippet }}</p>
+      <button @click="retry" class="mt-3 w-full rounded-lg bg-red-600 text-white py-2 text-sm font-bold active:scale-95 transition">
+        ลองใหม่
+      </button>
+      <button v-if="isAndroid" @click="login" class="mt-2 w-full rounded-lg bg-green-600 text-white py-2 text-sm font-bold active:scale-95 transition">
+        เข้าสู่ระบบ LINE
+      </button>
     </div>
 
     <!-- Hero Profile -->
@@ -9,7 +26,7 @@
       <!-- Decorative circles -->
       <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-brand-secondary opacity-15"></div>
       <div class="absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-white opacity-10"></div>
-      
+
       <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3 shadow-md z-10 relative overflow-hidden">
         <img v-if="photoUrl" :src="photoUrl" alt="รูปนักเรียน" class="w-full h-full object-cover" />
         <span v-else class="text-3xl">👦🏻</span>
@@ -53,6 +70,11 @@
       </div>
     </section>
 
+    <!-- Not registered -->
+    <div v-else-if="!isLoading && !liffError" class="text-center py-10 text-gray-500">
+      ไม่พบข้อมูลนักเรียน
+    </div>
+
     <!-- Action -->
     <div class="pt-2">
       <router-link to="/profile/edit" class="block w-full rounded-xl border border-action-primary bg-surface px-4 py-3 text-center font-bold text-action-primary shadow-sm transition hover:bg-brand-primary-soft focus:ring-4 focus:ring-focus-ring active:scale-95">
@@ -69,12 +91,16 @@ import { useLiff } from '../composables/useLiff';
 import { fetchProtectedPhotoUrl } from '../services/registrationApi';
 
 const router = useRouter();
-const { initLiff, getAccessToken } = useLiff();
+const { getAccessToken, error: liffError, isReady, login } = useLiff();
 
 const isLoading = ref(true);
 const studentData = ref(null);
 const guardianData = ref(null);
 const photoUrl = ref(null);
+const userAgentSnippet = ref(navigator.userAgent.slice(0, 80));
+const isAndroid = computed(() => /android/i.test(navigator.userAgent));
+const showReloadButton = ref(false);
+let reloadTimer = null;
 
 const studentName = computed(() => {
   if (!studentData.value) return '-';
@@ -94,32 +120,53 @@ const formatRelation = (rel) => {
   return 'อื่นๆ';
 };
 
-onBeforeUnmount(() => {
-  if (photoUrl.value) {
-    URL.revokeObjectURL(photoUrl.value);
-  }
-});
+function hasCallbackParams() {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const liffClientId = url.searchParams.get('liffClientId');
+  return !!(code && state && liffClientId);
+}
 
-onMounted(async () => {
-  await initLiff();
-  
+function redirectToEntry(preserveQuery = false) {
+  let target = '/liff-entry.html';
+  if (preserveQuery) {
+    target += window.location.search;
+  }
+  console.log('[Dashboard] redirect to', target);
+  window.location.href = target;
+}
+
+async function loadData() {
+  isLoading.value = true;
   try {
     const token = getAccessToken();
+    console.log('[Dashboard] token=', token ? 'present' : 'null');
     if (!token) {
-      router.push('/register');
+      console.log('[Dashboard] no token, redirect to entry page');
+      redirectToEntry();
       return;
     }
-    
-    const response = await fetch('/api/me', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    let response;
+    try {
+      response = await fetch('/api/me', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    console.log('[Dashboard] /api/me status=', response.status);
 
     if (response.ok) {
       const data = await response.json();
+      console.log('[Dashboard] /api/me data=', JSON.stringify({ student: !!data.student, guardians: data.guardians?.length }));
       studentData.value = data.student;
-      // Get primary guardian (first in array)
       guardianData.value = data.guardians?.[0] || null;
 
       if (data.student?.photoUrl) {
@@ -130,15 +177,69 @@ onMounted(async () => {
         }
       }
     } else if (response.status === 401 || response.status === 404) {
-      // If not registered or unauthorized
+      console.log('[Dashboard] 401/404, redirect /register');
       router.push('/register');
     } else {
-      console.error('Failed to load profile');
+      console.error('[Dashboard] /api/me failed', response.status, await response.text().catch(() => ''));
     }
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('[Dashboard] API Error:', error);
   } finally {
     isLoading.value = false;
+    if (reloadTimer) clearTimeout(reloadTimer);
+    console.log('[Dashboard] load complete, studentData=', !!studentData.value);
+  }
+}
+
+function startReloadTimer() {
+  showReloadButton.value = false;
+  if (reloadTimer) clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => { showReloadButton.value = true; }, 10000);
+}
+
+function reloadPage() {
+  console.log('[Dashboard] reloadPage clicked');
+  window.location.reload();
+}
+
+async function handleInit() {
+  isLoading.value = true;
+  startReloadTimer();
+  console.log('[Dashboard] init start');
+
+  // If callback params present, delegate to entry page
+  if (hasCallbackParams()) {
+    console.log('[Dashboard] callback params detected, delegating to entry page');
+    redirectToEntry(true);
+    return;
+  }
+
+  // Read token from localStorage via composable
+  const token = getAccessToken();
+  console.log('[Dashboard] token from storage=', token ? 'present' : 'null');
+
+  if (!token) {
+    console.log('[Dashboard] no token, redirect to entry page');
+    redirectToEntry();
+    return;
+  }
+
+  await loadData();
+}
+
+async function retry() {
+  console.log('[Dashboard] retry clicked');
+  redirectToEntry();
+}
+
+onMounted(() => {
+  handleInit();
+});
+
+onBeforeUnmount(() => {
+  if (reloadTimer) clearTimeout(reloadTimer);
+  if (photoUrl.value) {
+    URL.revokeObjectURL(photoUrl.value);
   }
 });
 </script>

@@ -138,7 +138,7 @@ import { useIntroductionDocument } from '../composables/useIntroductionDocument'
 import FrontofficePageHeader from '../components/FrontofficePageHeader.vue';
 
 const router = useRouter();
-const { initLiff, isReady, getAccessToken } = useLiff();
+const { isReady, getAccessToken, login } = useLiff();
 const {
   document,
   isLoading,
@@ -183,8 +183,8 @@ const formatDate = (dateStr) => {
 };
 
 onMounted(async () => {
-  await initLiff();
   const token = getAccessToken();
+  if (!token) { login(); return; }
   if (token) {
     try {
       await fetchDocument(token);
