@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { syncDisplayName } from '../services/registrationApi';
 
 export const LIFF_COMPOSABLE_VERSION = '2026-05-02-v3';
 
@@ -107,6 +108,11 @@ export function useLiff() {
         if (freshProfile?.displayName) window.localStorage.setItem(LIFF_DISPLAY_NAME_KEY, freshProfile.displayName);
         window.localStorage.setItem(LIFF_IN_CLIENT_KEY, String(inClient));
       } catch {}
+
+      // Sync display name to backend (fire-and-forget, don't block init)
+      if (token && freshProfile?.displayName) {
+        syncDisplayName(token, freshProfile.displayName).catch(() => {});
+      }
     })();
 
     return initPromise;

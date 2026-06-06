@@ -337,6 +337,26 @@ app.MapGet("/api/me/introduction-document", async (HttpContext context, IRegistr
         Left: ToErrorResult);
 });
 
+app.MapPost("/api/me/sync-display-name", async (HttpContext context, IStudentRepository repo) =>
+{
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var request = await context.Request.ReadFromJsonAsync<SyncDisplayNameRequest>();
+    if (request is null || string.IsNullOrWhiteSpace(request.DisplayName))
+    {
+        return Results.BadRequest(new { Error = "DisplayName is required." });
+    }
+
+    var result = await repo.UpdateGuardianDisplayNameAsync(lineUserId, request.DisplayName);
+    return result.Match(
+        Right: _ => Results.Ok(new { Message = "Display name synced." }),
+        Left: ToErrorResult);
+});
+
 app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
 {
     var result = await repo.GetStudentsAsync();
@@ -459,3 +479,5 @@ public class StudentRequest
 public sealed record RegistrationFormData(RegistrationRequest Registration, IFormFile? StudentPhoto, List<IFormFile> GuardianPhotos);
 
 public sealed record BootstrapRequest(string SecretToken, string LineUserId, string? Name);
+
+public sealed record SyncDisplayNameRequest(string DisplayName);

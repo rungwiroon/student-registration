@@ -71,6 +71,20 @@ export async function submitRegistration(token, form, files) {
   return response.json();
 }
 
+export async function syncDisplayName(token, displayName) {
+  const response = await apiFetch('/api/me/sync-display-name', token, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName })
+  });
+
+  if (!response.ok) {
+    console.warn('[syncDisplayName] failed:', response.status);
+    return false;
+  }
+  return true;
+}
+
 export async function fetchProtectedPhotoUrl(token, path) {
   if (!path) {
     return null;

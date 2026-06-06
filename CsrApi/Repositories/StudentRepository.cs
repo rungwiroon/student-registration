@@ -24,6 +24,7 @@ public interface IStudentRepository
     Task<Either<AppError, Unit>> UpsertGuardiansAsync(IEnumerable<Guardian> guardians);
     Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync();
     Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansWithLineUserIdAsync();
+    Task<Either<AppError, Unit>> UpdateGuardianDisplayNameAsync(string lineUserId, string displayName);
     Task InitializeDatabaseAsync();
 }
 
@@ -527,6 +528,26 @@ public class StudentRepository : IStudentRepository
             }
 
             await transaction.CommitAsync();
+            return Unit.Default;
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, Unit>> UpdateGuardianDisplayNameAsync(string lineUserId, string displayName)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var result = await connection.ExecuteAsync(
+                "UPDATE Guardians SET LineDisplayName = @DisplayName WHERE LineUserId = @LineUserId;",
+                new { LineUserId = lineUserId, DisplayName = displayName });
+
+            if (result == 0)
+                return AppError.NotFound($"Guardian with LineUserId {lineUserId} not found.");
+
             return Unit.Default;
         }
         catch (Exception ex)
