@@ -25,6 +25,10 @@ public class LineProfileService : ILineProfileService
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _channelAccessToken = config["Line:ChannelAccessToken"] ?? "";
+        if (string.IsNullOrWhiteSpace(_channelAccessToken))
+        {
+            _logger.LogWarning("Line:ChannelAccessToken is not configured. LINE display name lookups will be skipped.");
+        }
     }
 
     public async Task<string?> GetDisplayNameAsync(string lineUserId)

@@ -13,6 +13,7 @@ services:
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING:?CONNECTION_STRING is required}
       - EncryptionKey=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID:?LINE_LIFF_CHANNEL_ID is required}
+      - Line__ChannelAccessToken=${LINE_CHANNEL_ACCESS_TOKEN:-}
       - Bootstrap__SecretToken=${BOOTSTRAP_SECRET_TOKEN:-}
       - GoogleSheets__CredentialsPath=/app/credentials/service-account.json
       - GoogleSheets__SpreadsheetId=${GOOGLE_SHEETS_SPREADSHEET_ID:-}
