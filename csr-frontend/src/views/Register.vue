@@ -50,7 +50,7 @@
             <input v-model="form.student.phone" type="tel" class="mt-1 block w-full rounded-md border p-2 shadow-sm transition focus:ring-4 focus:outline-none" :class="inputClass()" placeholder="08..." />
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-[120px_1fr] gap-3">
             <div>
               <label class="block text-sm font-medium text-text-secondary">กรุ๊ปเลือด</label>
               <select v-model="form.student.bloodType" class="mt-1 block h-[42px] w-full rounded-md border p-2 shadow-sm transition focus:ring-4 focus:outline-none" :class="inputClass()">
