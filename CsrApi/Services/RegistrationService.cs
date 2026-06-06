@@ -398,6 +398,7 @@ public sealed class RegistrationService : IRegistrationService
             Occupation = request.Occupation,
             Email = request.Email,
             LineUserId = guardianOrder == 1 ? lineUserId : existingGuardian?.LineUserId,
+            LineDisplayName = guardianOrder == 1 ? request.LineDisplayName : existingGuardian?.LineDisplayName,
             EncryptedName = _encryption.Encrypt(fullName),
             EncryptedFirstName = string.IsNullOrEmpty(request.FirstName) ? null : _encryption.Encrypt(request.FirstName),
             EncryptedLastName = string.IsNullOrEmpty(request.LastName) ? null : _encryption.Encrypt(request.LastName),

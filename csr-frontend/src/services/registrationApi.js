@@ -6,6 +6,9 @@ function normalizeOptionalText(value) {
 }
 
 function toPayload(form) {
+  const lineDisplayName = typeof window !== 'undefined'
+    ? (window.localStorage.getItem('liff_display_name') || '')
+    : '';
   return {
     student: {
       studentId: form.student.studentId || null,
@@ -20,14 +23,15 @@ function toPayload(form) {
       bloodType: normalizeOptionalText(form.student.bloodType),
       dob: form.student.dob ? parseDobToApi(form.student.dob) : ''
     },
-    guardians: form.guardians.map(g => ({
+    guardians: form.guardians.map((g, index) => ({
       order: g.order,
       relationType: g.relationType || null,
       firstName: normalizeOptionalText(g.firstName),
       lastName: normalizeOptionalText(g.lastName),
       phone: normalizeOptionalText(g.phone),
       occupation: normalizeOptionalText(g.occupation),
-      email: normalizeOptionalText(g.email)
+      email: normalizeOptionalText(g.email),
+      lineDisplayName: index === 0 ? lineDisplayName : ''
     }))
   };
 }

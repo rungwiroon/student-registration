@@ -33,4 +33,5 @@ public class GuardianInfo
     public string Phone { get; set; } = string.Empty;
     public string? Occupation { get; set; }
     public string? Email { get; set; }
+    public string? LineDisplayName { get; set; }
 }

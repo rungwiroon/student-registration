@@ -115,6 +115,7 @@ public class StudentRepository : IStudentRepository
         await EnsureColumnAsync(connection, "Guardians", "GuardianOrder", "INTEGER DEFAULT 1");
         await EnsureColumnAsync(connection, "Guardians", "EncryptedFirstName", "TEXT");
         await EnsureColumnAsync(connection, "Guardians", "EncryptedLastName", "TEXT");
+        await EnsureColumnAsync(connection, "Guardians", "LineDisplayName", "TEXT");
         await EnsureColumnAsync(connection, "Students", "InternalNote", "TEXT");
         
         // Create index after ensuring columns exist
@@ -392,9 +393,9 @@ public class StudentRepository : IStudentRepository
             using var connection = GetConnection();
             var sql = @"
                 INSERT INTO Guardians (
-                    Id, StudentId, RelationType, GuardianOrder, EncryptedName, EncryptedFirstName, EncryptedLastName, EncryptedPhone, Occupation, Email, LineUserId, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
+                    Id, StudentId, RelationType, GuardianOrder, EncryptedName, EncryptedFirstName, EncryptedLastName, EncryptedPhone, Occupation, Email, LineUserId, LineDisplayName, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
                 ) VALUES (
-                    @Id, @StudentId, @RelationType, @GuardianOrder, @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
+                    @Id, @StudentId, @RelationType, @GuardianOrder, @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @LineDisplayName, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
                 )
                 ON CONFLICT(Id) DO UPDATE SET
                     RelationType = excluded.RelationType,
@@ -407,12 +408,13 @@ public class StudentRepository : IStudentRepository
                     Occupation = excluded.Occupation,
                     Email = excluded.Email,
                     LineUserId = excluded.LineUserId,
+                    LineDisplayName = excluded.LineDisplayName,
                     PhotoFileName = excluded.PhotoFileName,
                     PhotoContentType = excluded.PhotoContentType,
                     PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc;";
 
-            var result = await connection.ExecuteAsync(sql, new 
-            { 
+            var result = await connection.ExecuteAsync(sql, new
+            {
                 Id = guardian.Id.ToString(),
                 StudentId = guardian.StudentId.ToString(),
                 guardian.RelationType,
@@ -424,6 +426,7 @@ public class StudentRepository : IStudentRepository
                 guardian.Occupation,
                 guardian.Email,
                 guardian.LineUserId,
+                guardian.LineDisplayName,
                 guardian.PhotoFileName,
                 guardian.PhotoContentType,
                 guardian.PhotoUploadedAtUtc
@@ -483,9 +486,9 @@ public class StudentRepository : IStudentRepository
             {
                 var sql = @"
                     INSERT INTO Guardians (
-                        Id, StudentId, RelationType, GuardianOrder, EncryptedName, EncryptedFirstName, EncryptedLastName, EncryptedPhone, Occupation, Email, LineUserId, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
+                        Id, StudentId, RelationType, GuardianOrder, EncryptedName, EncryptedFirstName, EncryptedLastName, EncryptedPhone, Occupation, Email, LineUserId, LineDisplayName, PhotoFileName, PhotoContentType, PhotoUploadedAtUtc
                     ) VALUES (
-                        @Id, @StudentId, @RelationType, @GuardianOrder, @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
+                        @Id, @StudentId, @RelationType, @GuardianOrder, @EncryptedName, @EncryptedFirstName, @EncryptedLastName, @EncryptedPhone, @Occupation, @Email, @LineUserId, @LineDisplayName, @PhotoFileName, @PhotoContentType, @PhotoUploadedAtUtc
                     )
                     ON CONFLICT(Id) DO UPDATE SET
                         RelationType = excluded.RelationType,
@@ -498,6 +501,7 @@ public class StudentRepository : IStudentRepository
                         Occupation = excluded.Occupation,
                         Email = excluded.Email,
                         LineUserId = excluded.LineUserId,
+                        LineDisplayName = excluded.LineDisplayName,
                         PhotoFileName = excluded.PhotoFileName,
                         PhotoContentType = excluded.PhotoContentType,
                         PhotoUploadedAtUtc = excluded.PhotoUploadedAtUtc;";
@@ -515,6 +519,7 @@ public class StudentRepository : IStudentRepository
                     guardian.Occupation,
                     guardian.Email,
                     guardian.LineUserId,
+                    guardian.LineDisplayName,
                     guardian.PhotoFileName,
                     guardian.PhotoContentType,
                     guardian.PhotoUploadedAtUtc

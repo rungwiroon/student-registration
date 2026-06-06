@@ -15,6 +15,7 @@ public class Guardian
     public string? Occupation { get; set; }
     public string? Email { get; set; }
     public string? LineUserId { get; set; }
+    public string? LineDisplayName { get; set; }
     public string? PhotoFileName { get; set; }
     public string? PhotoContentType { get; set; }
     public DateTime? PhotoUploadedAtUtc { get; set; }
