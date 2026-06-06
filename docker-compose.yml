@@ -11,8 +11,12 @@ services:
       - EncryptionKey=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       - Line__LiffChannelId=${LINE_LIFF_CHANNEL_ID:?LINE_LIFF_CHANNEL_ID is required}
       - Bootstrap__SecretToken=${BOOTSTRAP_SECRET_TOKEN:-}
+      - GoogleSheets__CredentialsPath=/app/credentials/google-service-account.json
+      - GoogleSheets__SpreadsheetId=${GOOGLE_SHEETS_SPREADSHEET_ID:-}
+      - SlipStorage__RootPath=${SHIRT_ORDER_SLIP_PATH:-App_Data/ShirtOrderSlips}
     volumes:
       - app_data:/app/data
+      - ./CsrApi/App_Data/GoogleCredentials:/app/credentials:ro
 
   frontend:
     image: csr-frontend:latest

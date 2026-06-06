@@ -35,11 +35,8 @@ done
 
 # ── Ensure buildx builder for cross-platform ────────────
 PLATFORM="linux/amd64"
-if ! docker buildx inspect multiarch &>/dev/null; then
-  echo "🔧 Creating buildx builder for multi-platform..."
-  docker buildx create --name multiarch --use
-fi
-docker buildx use multiarch
+# Use default buildx builder (works with OrbStack, Docker Desktop, etc.)
+docker buildx use default >/dev/null 2>&1 || true
 
 # ── Read password once ──────────────────────────────────
 read -rsp "Enter password for $VPS_USER@$VPS_HOST: " SSHPASS

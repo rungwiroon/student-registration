@@ -31,3 +31,5 @@ CsrApi/App_Data/
 # Playwright E2E artifacts
 test-results/
 .playwright-mcp/
+
+logs/

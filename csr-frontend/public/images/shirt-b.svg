@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#f3f4f6" />
+  <text x="200" y="180" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#374151" text-anchor="middle">เสื้อนักเรียน</text>
+  <text x="200" y="220" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#2563eb" text-anchor="middle">แบบ B</text>
+  <text x="200" y="260" font-family="Arial, sans-serif" font-size="14" fill="#6b7280" text-anchor="middle">แทนที่รูปนี้ด้วยไฟล์จริง</text>
+</svg>

@@ -14,6 +14,15 @@
         กำลังโหลดข้อมูล...
       </div>
 
+      <div v-else-if="isNotRegistered" class="text-center py-10">
+        <div class="mb-4 text-6xl">📝</div>
+        <p class="text-lg font-bold text-gray-700 mb-2">ยังไม่ได้ลงทะเบียน</p>
+        <p class="text-sm text-gray-500 mb-6">กรุณาลงทะเบียนข้อมูลนักเรียนก่อน<br>เพื่อดูเอกสารแนะนำ</p>
+        <router-link to="/register" class="inline-block rounded-xl bg-brand-primary px-6 py-3 text-center font-bold text-white shadow-sm transition hover:bg-brand-primary-strong focus:ring-4 focus:ring-focus-ring active:scale-95">
+          ลงทะเบียนนักเรียน
+        </router-link>
+      </div>
+
       <div v-else-if="document" class="document-content">
         <!-- Document Title -->
         <div class="text-center mb-6">
@@ -131,7 +140,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 import { useIntroductionDocument } from '../composables/useIntroductionDocument';
@@ -147,6 +156,8 @@ const {
   getGuardianPhotoUrl,
   printDocument
 } = useIntroductionDocument();
+
+const isNotRegistered = ref(false);
 
 const visibleGuardians = computed(() => {
   if (!document.value?.guardians) return [];
@@ -191,7 +202,8 @@ onMounted(async () => {
     } catch (error) {
       console.error('Failed to fetch document:', error);
       if (error.status === 404) {
-        router.push('/register');
+        // User not registered yet — show CTA instead of redirect
+        isNotRegistered.value = true;
       }
     }
   }

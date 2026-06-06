@@ -10,4 +10,5 @@ export const routes = {
   register: '/register',
   editProfile: '/profile/edit',
   document: '/document',
+  shirtOrder: '/shirt-order',
 };

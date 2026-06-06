@@ -40,6 +40,18 @@ const routes = [
     }
   },
   {
+    path: '/shirt-order',
+    name: 'ShirtOrder',
+    component: () => import('../views/ShirtOrder.vue'),
+    meta: {
+      frontofficeHeader: {
+        title: 'สั่งซื้อเสื้อนักเรียน',
+        showBack: true,
+        showHome: true
+      }
+    }
+  },
+  {
     path: '/',
     component: MainLayout,
     redirect: '/dashboard',

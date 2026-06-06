@@ -71,13 +71,26 @@
     </section>
 
     <!-- Not registered -->
-    <div v-else-if="!isLoading && !liffError" class="text-center py-10 text-gray-500">
-      ไม่พบข้อมูลนักเรียน
+    <div v-else-if="!isLoading && !liffError" class="text-center py-8">
+      <div class="mb-3 text-6xl">📝</div>
+      <p class="text-lg font-bold text-gray-700 mb-1">ยังไม่ได้ลงทะเบียน</p>
+      <p class="text-sm text-gray-500 mb-4">ลงทะเบียนเพื่อใช้งานระบบครบถ้วน</p>
     </div>
 
-    <!-- Action -->
-    <div class="pt-2">
-      <router-link to="/profile/edit" class="block w-full rounded-xl border border-action-primary bg-surface px-4 py-3 text-center font-bold text-action-primary shadow-sm transition hover:bg-brand-primary-soft focus:ring-4 focus:ring-focus-ring active:scale-95">
+    <!-- Action Buttons -->
+    <div class="space-y-3 pt-2">
+      <!-- Shirt Order — always visible, prominent -->
+      <router-link to="/shirt-order" class="block w-full rounded-2xl bg-gradient-to-r from-brand-secondary to-brand-secondary-strong px-6 py-5 text-center font-bold text-white shadow-lg transition hover:brightness-110 focus:ring-4 focus:ring-focus-ring active:scale-95">
+        <div class="text-2xl mb-1">🎽</div>
+        <div class="text-lg">สั่งซื้อเสื้อนักเรียน</div>
+        <div class="text-xs font-normal opacity-90 mt-1">คลิกที่นี่เพื่อสั่งซื้อ</div>
+      </router-link>
+
+      <!-- Register / Edit Profile -->
+      <router-link v-if="!studentData" to="/register" class="block w-full rounded-xl bg-brand-primary px-4 py-3 text-center font-bold text-white shadow-sm transition hover:bg-brand-primary-strong focus:ring-4 focus:ring-focus-ring active:scale-95">
+        📝 ลงทะเบียนนักเรียน
+      </router-link>
+      <router-link v-else to="/profile/edit" class="block w-full rounded-xl border border-action-primary bg-surface px-4 py-3 text-center font-bold text-action-primary shadow-sm transition hover:bg-brand-primary-soft focus:ring-4 focus:ring-focus-ring active:scale-95">
         ✏️ แก้ไขข้อมูล
       </router-link>
     </div>
@@ -177,8 +190,8 @@ async function loadData() {
         }
       }
     } else if (response.status === 401 || response.status === 404) {
-      console.log('[Dashboard] 401/404, redirect /register');
-      router.push('/register');
+      console.log('[Dashboard] 401/404, user not registered yet — staying on dashboard');
+      // Don't redirect to /register — user can still browse and order shirts
     } else {
       console.error('[Dashboard] /api/me failed', response.status, await response.text().catch(() => ''));
     }

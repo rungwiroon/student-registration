@@ -82,6 +82,10 @@ builder.Services.AddSingleton<IBackofficePolicy, BackofficePolicy>();
 builder.Services.AddSingleton<ILineProfileService, LineProfileService>();
 builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection("PhotoStorage"));
 builder.Services.AddSingleton<IPhotoStorageService, PhotoStorageService>();
+builder.Services.Configure<SlipStorageOptions>(builder.Configuration.GetSection("SlipStorage"));
+builder.Services.AddSingleton<ISlipStorageService, SlipStorageService>();
+builder.Services.Configure<GoogleSheetsOptions>(builder.Configuration.GetSection("GoogleSheets"));
+builder.Services.AddSingleton<IGoogleSheetsService, GoogleSheetsService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
@@ -147,6 +151,7 @@ app.UseRateLimiter();
 app.UseMiddleware<LiffAuthMiddleware>();
 
 app.MapBackofficeEndpoints();
+app.MapShirtOrderEndpoints();
 app.MapHealthChecks("/health");
 
 // One-time bootstrap endpoint for first Teacher (self-disabling after use)
