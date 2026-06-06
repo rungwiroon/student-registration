@@ -1,3 +1,16 @@
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('Session expired. Redirecting to login...');
+    this.name = 'UnauthorizedError';
+  }
+}
+
+function redirectToLogin() {
+  try { localStorage.clear(); } catch {}
+  window.location.replace('/liff-entry.html');
+  throw new UnauthorizedError();
+}
+
 async function createApiError(response) {
   const message = (await response.text()) || `Request failed with status ${response.status}`;
   const error = new Error(message);
@@ -16,6 +29,10 @@ export async function apiFetch(path, token, options = {}) {
     ...options,
     headers
   });
+
+  if (response.status === 401) {
+    redirectToLogin();
+  }
 
   return response;
 }

@@ -253,6 +253,7 @@ import FrontofficePageHeader from '../components/FrontofficePageHeader.vue';
 import { useShirtOrder } from '../composables/useShirtOrder';
 import { useLiff } from '../composables/useLiff';
 import { submitShirtOrder } from '../services/shirtOrderApi';
+import { UnauthorizedError } from '../services/apiClient';
 
 const shirtImageA = ref('/images/shirt-a.jpg');
 const shirtImageB = ref('/images/shirt-b.jpg');
@@ -371,6 +372,9 @@ async function submitOrder() {
     isSuccess.value = true;
   } catch (error) {
     console.error('Order submission failed:', error);
+    if (error instanceof UnauthorizedError) {
+      return; // redirectToLogin จัดการแล้ว
+    }
     alert(error.message || 'สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
   } finally {
     isSubmitting.value = false;

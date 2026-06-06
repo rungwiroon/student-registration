@@ -43,6 +43,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useLiff } from '../composables/useLiff';
+import { apiJson, UnauthorizedError } from '../services/apiClient';
 
 const students = ref([]);
 const isLoading = ref(true);
@@ -54,23 +55,11 @@ onMounted(async () => {
     const token = getAccessToken();
     if (!token) { login(); return; }
 
-    if (!token) {
-      error.value = 'ไม่พบ LINE access token สำหรับเรียกใช้งาน API';
-      return;
-    }
-
-    const response = await fetch('/api/class', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.ok) {
-      students.value = await response.json();
-    } else {
-      error.value = 'ไม่สามารถดึงข้อมูลรายชื่อได้โปรดลองอีกครั้ง';
-    }
+    students.value = await apiJson('/api/class', token);
   } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      return; // redirectToLogin จัดการแล้ว
+    }
     console.error('API Error:', err);
     error.value = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
   } finally {

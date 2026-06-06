@@ -228,6 +228,27 @@
       saveToStorage(token, profile, inClient);
       log('saved to localStorage');
 
+      // Sync display name to backend (best-effort, short timeout)
+      if (token && profile?.displayName) {
+        try {
+          const controller = new AbortController();
+          const syncTimer = setTimeout(() => controller.abort(), 3000);
+          await fetch('/api/me/sync-display-name', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ displayName: profile.displayName }),
+            signal: controller.signal
+          });
+          clearTimeout(syncTimer);
+          log('displayName synced');
+        } catch (e) {
+          log('displayName sync skipped: ' + e.message);
+        }
+      }
+
       // Clean URL
       if (window.history.replaceState) {
         const cleanUrl = new URL(window.location.href);

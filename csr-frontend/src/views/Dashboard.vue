@@ -101,6 +101,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 import { fetchProtectedPhotoUrl } from '../services/registrationApi';
+import { apiJson, UnauthorizedError } from '../services/apiClient';
 
 const router = useRouter();
 const { getAccessToken, error: liffError, isReady, login } = useLiff();
@@ -160,41 +161,25 @@ async function loadData() {
       return;
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const data = await apiJson('/api/me', token);
+    console.log('[Dashboard] /api/me data=', JSON.stringify({ student: !!data.student, guardians: data.guardians?.length }));
+    studentData.value = data.student;
+    guardianData.value = data.guardians?.[0] || null;
 
-    let response;
-    try {
-      response = await fetch('/api/me', {
-        headers: { 'Authorization': `Bearer ${token}` },
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    console.log('[Dashboard] /api/me status=', response.status);
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[Dashboard] /api/me data=', JSON.stringify({ student: !!data.student, guardians: data.guardians?.length }));
-      studentData.value = data.student;
-      guardianData.value = data.guardians?.[0] || null;
-
-      if (data.student?.photoUrl) {
-        try {
-          photoUrl.value = await fetchProtectedPhotoUrl(token, data.student.photoUrl);
-        } catch (err) {
-          console.warn('Failed to load student photo', err);
+    if (data.student?.photoUrl) {
+      try {
+        photoUrl.value = await fetchProtectedPhotoUrl(token, data.student.photoUrl);
+      } catch (err) {
+        if (err instanceof UnauthorizedError) {
+          return; // redirectToLogin จัดการแล้ว
         }
+        console.warn('Failed to load student photo', err);
       }
-    } else if (response.status === 401 || response.status === 404) {
-      console.log('[Dashboard] 401/404, user not registered yet — staying on dashboard');
-      // Don't redirect to /register — user can still browse and order shirts
-    } else {
-      console.error('[Dashboard] /api/me failed', response.status, await response.text().catch(() => ''));
     }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return; // redirectToLogin จัดการแล้ว
+    }
     console.error('[Dashboard] API Error:', error);
   } finally {
     isLoading.value = false;

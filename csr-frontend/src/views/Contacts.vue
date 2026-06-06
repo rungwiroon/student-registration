@@ -49,6 +49,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useLiff } from '../composables/useLiff';
+import { apiJson, UnauthorizedError } from '../services/apiClient';
 
 const { getAccessToken, login } = useLiff();
 const isLoading = ref(true);
@@ -58,21 +59,15 @@ const parentNetwork = ref([]);
 onMounted(async () => {
   const token = getAccessToken();
   if (!token) { login(); return; }
-  if (!token) {
-    isLoading.value = false;
-    return;
-  }
 
   try {
-    const res = await fetch('/api/directory', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      teachers.value = data.teachers ?? [];
-      parentNetwork.value = data.parentNetwork ?? [];
-    }
+    const data = await apiJson('/api/directory', token);
+    teachers.value = data.teachers ?? [];
+    parentNetwork.value = data.parentNetwork ?? [];
   } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      return; // redirectToLogin จัดการแล้ว
+    }
     console.warn('Failed to load directory', err);
   } finally {
     isLoading.value = false;

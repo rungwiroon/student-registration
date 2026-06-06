@@ -212,6 +212,7 @@ import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { useLiff } from '../composables/useLiff';
 import { useRegistrationForm } from '../composables/useRegistrationForm';
+import { UnauthorizedError } from '../services/apiClient';
 import StudentPhotoUpload from '../components/StudentPhotoUpload.vue';
 import GuardianPhotoUpload from '../components/GuardianPhotoUpload.vue';
 import FrontofficePageHeader from '../components/FrontofficePageHeader.vue';
@@ -301,6 +302,9 @@ const submitForm = async () => {
     router.push('/');
   } catch (error) {
     console.error('API Error:', error);
+    if (error instanceof UnauthorizedError) {
+      return; // redirectToLogin จัดการแล้ว
+    }
     alert(`⚠️ เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'}`);
   }
 };
