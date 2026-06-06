@@ -104,8 +104,9 @@
                 <p><span class="text-gray-500">ชื่อ-นามสกุล:</span> <span class="font-medium ml-2">{{ g.name || '-' }}</span></p>
                 <p><span class="text-gray-500">เบอร์โทรศัพท์:</span> <span class="font-medium ml-2">{{ g.phone || '-' }}</span></p>
                 <p><span class="text-gray-500">อาชีพ:</span> <span class="font-medium ml-2">{{ g.occupation || '-' }}</span></p>
-                <p><span class="text-gray-500">LINE User ID:</span>
-                  <span class="font-medium ml-2 font-mono text-xs">{{ g.lineUserId || '-' }}</span>
+                <p><span class="text-gray-500">LINE:</span>
+                  <span v-if="g.lineDisplayName" class="font-medium ml-2">{{ g.lineDisplayName }}</span>
+                  <span class="font-medium ml-2 font-mono text-xs text-gray-500">({{ g.lineUserId || '-' }})</span>
                   <button v-if="g.lineUserId" @click="copyText(g.lineUserId)" class="ml-2 text-xs" :class="copiedId === g.lineUserId ? 'text-emerald-600 font-medium' : 'text-blue-600 underline'">{{ copiedId === g.lineUserId ? 'คัดลอกแล้ว' : 'คัดลอก' }}</button>
                 </p>
               </div>

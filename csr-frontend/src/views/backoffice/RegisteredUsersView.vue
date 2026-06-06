@@ -17,6 +17,7 @@
             <span class="text-xs font-mono text-gray-400">#{{ user.guardianOrder }}</span>
           </div>
           <div class="flex items-center space-x-2">
+            <span v-if="user.lineDisplayName" class="text-xs font-medium text-slate-700">{{ user.lineDisplayName }}</span>
             <code class="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{{ user.lineUserId }}</code>
             <button @click="copy(user.lineUserId)" class="text-xs" :class="copiedId === user.lineUserId ? 'text-emerald-600 font-medium' : 'text-blue-600 underline'">{{ copiedId === user.lineUserId ? 'คัดลอกแล้ว' : 'คัดลอก' }}</button>
           </div>
@@ -32,7 +33,7 @@
         <table class="w-full text-left text-sm text-gray-600">
           <thead class="bg-gray-50 text-gray-700 font-medium">
             <tr>
-              <th class="px-6 py-4 border-b">LINE User ID</th>
+              <th class="px-6 py-4 border-b">LINE</th>
               <th class="px-6 py-4 border-b">ชื่อ</th>
               <th class="px-6 py-4 border-b">ความสัมพันธ์</th>
               <th class="px-6 py-4 border-b">เบอร์โทร</th>
@@ -41,10 +42,13 @@
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="user in users" :key="user.lineUserId" class="hover:bg-slate-50 transition">
-              <td class="px-6 py-4 font-mono text-xs">
-                <div class="flex items-center space-x-2">
-                  <code class="bg-gray-100 px-2 py-1 rounded">{{ user.lineUserId }}</code>
-                  <button @click="copy(user.lineUserId)" class="text-xs" :class="copiedId === user.lineUserId ? 'text-emerald-600 font-medium' : 'text-blue-600 hover:text-blue-800 underline'">{{ copiedId === user.lineUserId ? 'คัดลอกแล้ว' : 'คัดลอก' }}</button>
+              <td class="px-6 py-4 text-xs">
+                <div class="space-y-1">
+                  <span v-if="user.lineDisplayName" class="font-medium text-slate-700 block">{{ user.lineDisplayName }}</span>
+                  <div class="flex items-center space-x-2">
+                    <code class="font-mono bg-gray-100 px-2 py-1 rounded">{{ user.lineUserId }}</code>
+                    <button @click="copy(user.lineUserId)" class="text-xs" :class="copiedId === user.lineUserId ? 'text-emerald-600 font-medium' : 'text-blue-600 hover:text-blue-800 underline'">{{ copiedId === user.lineUserId ? 'คัดลอกแล้ว' : 'คัดลอก' }}</button>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-4 font-bold text-slate-800">{{ user.name || '-' }}</td>
