@@ -7,7 +7,7 @@ test.describe('Shirt Order page', () => {
     await gotoWithAuth(page, routes.shirtOrder);
 
     // Header
-    await expect(page.getByText('สั่งซื้อเสื้อนักเรียน')).toBeVisible();
+    await expect(page.getByText('สั่งเสื้อรุ่น SKN50 ม. 1/2')).toBeVisible();
 
     // Design images
     await expect(page.getByText('แบบ A')).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('Shirt Order page', () => {
     await gotoWithAuth(page, routes.shirtOrder);
 
     // Initial total should be 0
-    await expect(page.getByText('฿0')).toBeVisible();
+    await expect(page.getByText('0 บาท')).toBeVisible();
 
     // Click + on Design A, size M
     const designASection = page.locator('div').filter({ hasText: /^แบบ A/ }).first();
@@ -63,18 +63,18 @@ test.describe('Shirt Order page', () => {
     await plusBtn.click();
 
     // Total should be 250
-    await expect(page.getByText('฿250')).toBeVisible();
+    await expect(page.getByText('260 บาท')).toBeVisible();
 
     // Click + again
     await plusBtn.click();
     // Total should be 500
-    await expect(page.getByText('฿500')).toBeVisible();
+    await expect(page.getByText('520 บาท')).toBeVisible();
 
     // Click -
     const minusBtn = mCell.locator('button').first();
     await minusBtn.click();
     // Total should be 250 again
-    await expect(page.getByText('฿250')).toBeVisible();
+    await expect(page.getByText('250 บาท')).toBeVisible();
   });
 
   test('valid form submits and shows success state', async ({ page }) => {
@@ -88,7 +88,7 @@ test.describe('Shirt Order page', () => {
     await lCell.locator('button').nth(1).click();
 
     // Total should be 500
-    await expect(page.getByText('฿500')).toBeVisible();
+    await expect(page.getByText('520 บาท')).toBeVisible();
 
     // Fill student info
     await page.getByPlaceholder('ชื่อ-นามสกุลนักเรียน').fill('ทดสอบ สมมติ');
@@ -119,7 +119,7 @@ test.describe('Shirt Order page', () => {
 
   test('dashboard has link to shirt order', async ({ page }) => {
     await gotoWithAuth(page, routes.dashboard);
-    const shirtOrderLink = page.getByRole('link', { name: /สั่งซื้อเสื้อนักเรียน/ });
+    const shirtOrderLink = page.getByRole('link', { name: /สั่งซื้อเสื้อ POLO/ });
     await expect(shirtOrderLink).toBeVisible();
     await shirtOrderLink.click();
     await expect(page).toHaveURL(routes.shirtOrder);

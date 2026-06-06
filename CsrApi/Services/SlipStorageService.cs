@@ -48,12 +48,14 @@ public sealed class SlipStorageService : ISlipStorageService
 
     private readonly SlipStorageOptions _options;
     private readonly string _rootPath;
+    private readonly string _publicBaseUrl;
 
-    public SlipStorageService(IOptions<SlipStorageOptions> options, IHostEnvironment environment)
+    public SlipStorageService(IOptions<SlipStorageOptions> options, IHostEnvironment environment, IConfiguration config)
     {
         _options = options.Value;
         _rootPath = Path.GetFullPath(Path.Combine(environment.ContentRootPath, _options.RootPath));
         Directory.CreateDirectory(_rootPath);
+        _publicBaseUrl = config["PublicBaseUrl"]?.TrimEnd('/') ?? "";
     }
 
     public async Task<Either<AppError, StoredSlip>> SaveAsync(IFormFile file, string ownerKey, CancellationToken cancellationToken)
@@ -85,7 +87,8 @@ public sealed class SlipStorageService : ISlipStorageService
             await using var stream = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             await file.CopyToAsync(stream, cancellationToken);
 
-            var publicUrl = $"/api/v1/school-shirt/slips/{Uri.EscapeDataString(ownerKey)}/{Uri.EscapeDataString(fileName)}";
+            var relativeUrl = $"/api/v1/school-shirt/slips/{Uri.EscapeDataString(ownerKey)}/{Uri.EscapeDataString(fileName)}";
+            var publicUrl = string.IsNullOrEmpty(_publicBaseUrl) ? relativeUrl : $"{_publicBaseUrl}{relativeUrl}";
             return new StoredSlip(fileName, file.ContentType, DateTime.UtcNow, publicUrl);
         }
         catch (Exception ex)

@@ -30,7 +30,7 @@ public class LiffAuthMiddleware
     {
         // Skip auth for Swagger or specific endpoints if needed
         var path = context.Request.Path.Value;
-        if (path != null && (path.StartsWith("/swagger") || path.StartsWith("/health") || path.StartsWith("/api/backoffice/dev") || path == "/api/bootstrap"))
+        if (path != null && (path.StartsWith("/swagger") || path.StartsWith("/health") || path.StartsWith("/api/backoffice/dev") || path == "/api/bootstrap" || path.StartsWith("/api/v1/school-shirt/slips")))
         {
             await _next(context);
             return;

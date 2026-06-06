@@ -74,15 +74,14 @@
     <div v-else-if="!isLoading && !liffError" class="text-center py-8">
       <div class="mb-3 text-6xl">📝</div>
       <p class="text-lg font-bold text-gray-700 mb-1">ยังไม่ได้ลงทะเบียน</p>
-      <p class="text-sm text-gray-500 mb-4">ลงทะเบียนเพื่อใช้งานระบบครบถ้วน</p>
+      <p class="text-sm text-gray-500 mb-4">ลงทะเบียนเพื่อใช้งานระบบ</p>
     </div>
 
     <!-- Action Buttons -->
     <div class="space-y-3 pt-2">
       <!-- Shirt Order — always visible, prominent -->
       <router-link to="/shirt-order" class="block w-full rounded-2xl bg-gradient-to-r from-brand-secondary to-brand-secondary-strong px-6 py-5 text-center font-bold text-white shadow-lg transition hover:brightness-110 focus:ring-4 focus:ring-focus-ring active:scale-95">
-        <div class="text-2xl mb-1">🎽</div>
-        <div class="text-lg">สั่งซื้อเสื้อนักเรียน</div>
+        <div class="text-lg">สั่งเสื้อรุ่น SKN50 ม. 1/2</div>
         <div class="text-xs font-normal opacity-90 mt-1">คลิกที่นี่เพื่อสั่งซื้อ</div>
       </router-link>
 

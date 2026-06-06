@@ -6,7 +6,8 @@ export async function submitShirtOrder(token, form, slipFile, totalAmount, order
   const payload = {
     lineDisplayName: form.lineDisplayName || '',
     studentName: form.studentName || '',
-    studentNumber: form.studentNumber || '',
+    studentNumber: String(form.studentNumber ?? ''),
+    guardianPhone: form.guardianPhone || '',
     items: form.items
       .filter(i => i.quantity > 0)
       .map(i => ({

@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <FrontofficePageHeader title="สั่งซื้อเสื้อนักเรียน" show-back show-home />
+    <FrontofficePageHeader title="สั่งเสื้อรุ่น SKN50 ม. 1/2" show-back show-home />
 
     <main class="mx-auto max-w-2xl px-4 py-6 pb-32">
       <!-- Success State -->
@@ -20,8 +20,8 @@
         <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm space-y-4">
           <h3 class="font-bold text-text-primary">สรุปคำสั่งซื้อ</h3>
           <div class="rounded-xl bg-brand-primary-soft p-4">
-            <p class="text-sm text-brand-primary-strong">{{ orderSummary }}</p>
-            <p class="mt-1 text-lg font-bold text-brand-primary-strong">฿{{ totalAmount.toLocaleString() }}</p>
+            <p class="text-sm text-brand-primary-strong whitespace-pre-line">{{ orderSummary }}</p>
+            <p class="mt-1 text-lg font-bold text-brand-primary-strong">{{ totalAmount.toLocaleString() }} บาท</p>
           </div>
 
           <div class="space-y-2 text-sm text-text-secondary">
@@ -44,41 +44,27 @@
 
       <!-- Order Form -->
       <div v-else class="space-y-8">
-        <!-- Shirt Designs -->
-        <section>
-          <h2 class="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">รูปแบบเสื้อ</h2>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="rounded-2xl border border-border bg-surface p-3 shadow-sm text-center">
-              <div class="aspect-square w-full rounded-xl bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
-                <!-- Replace src with actual image path -->
-                <img :src="shirtImageA" alt="เสื้อแบบ A" class="h-full w-full object-cover" loading="lazy" @error="onImageError" />
-              </div>
-              <p class="font-bold text-text-primary">แบบ A</p>
-              <p class="text-xs text-text-secondary">฿250/ตัว</p>
-            </div>
-            <div class="rounded-2xl border border-border bg-surface p-3 shadow-sm text-center">
-              <div class="aspect-square w-full rounded-xl bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
-                <img :src="shirtImageB" alt="เสื้อแบบ B" class="h-full w-full object-cover" loading="lazy" @error="onImageError" />
-              </div>
-              <p class="font-bold text-text-primary">แบบ B</p>
-              <p class="text-xs text-text-secondary">฿250/ตัว</p>
-            </div>
-          </div>
-          <p class="mt-2 text-xs text-gray-500">* แทนที่ไฟล์รูปในโฟลเดอร์ <code>public/images/</code></p>
-        </section>
-
-        <!-- Quantity Selection (with inline size chart) -->
+        <!-- Quantity Selection -->
         <section>
           <h2 class="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">เลือกจำนวน</h2>
 
           <div v-for="design in DESIGNS" :key="design" class="mb-6">
+            <!-- Design image per design -->
+            <div class="mb-3 rounded-2xl border border-border bg-surface p-3 shadow-sm text-center">
+              <p class="mb-2 font-bold text-text-primary text-lg">แบบที่ {{ design }}</p>
+              <div class="w-full rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img :src="design === '1' ? shirtImageA : shirtImageB" :alt="`เสื้อแบบที่ ${design}`" class="w-full h-auto object-contain" loading="lazy" @error="onImageError" />
+              </div>
+              <p class="mt-2 text-xs text-text-secondary">260 บาท/ตัว</p>
+            </div>
+
             <div class="mb-2 flex items-center gap-2">
-              <span class="font-bold text-text-primary">🎽 แบบ {{ design }}</span>
-              <span class="rounded-full bg-brand-primary-soft px-2 py-0.5 text-xs font-semibold text-brand-primary-strong">฿{{ UNIT_PRICE }}/ตัว</span>
+              <span class="font-bold text-text-primary">🎽 แบบที่ {{ design }}</span>
+              <span class="rounded-full bg-brand-primary-soft px-2 py-0.5 text-xs font-semibold text-brand-primary-strong">{{ UNIT_PRICE }} บาท/ตัว</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
               <div v-for="size in SIZES" :key="`${design}-${size}`" class="rounded-xl border border-border bg-surface p-2 text-center shadow-sm">
-                <p class="text-xs font-bold text-text-secondary">{{ size }}</p>
+                <p class="text-sm font-bold text-text-secondary">{{ size }}</p>
                 <p class="text-[10px] text-gray-400 leading-tight">{{ getSizeInfo(size) }}</p>
                 <div class="mt-1 flex items-center justify-center gap-1">
                   <button
@@ -116,9 +102,9 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs text-text-secondary">รวมทั้งสิ้น</p>
-                <p class="text-2xl font-bold text-brand-primary-strong">฿{{ totalAmount.toLocaleString() }}</p>
+                <p class="text-2xl font-bold text-brand-primary-strong">{{ totalAmount.toLocaleString() }} บาท</p>
               </div>
-              <div v-if="orderSummary" class="text-right text-xs text-text-secondary max-w-[60%]">
+              <div v-if="orderSummary" class="text-right text-xs text-text-secondary max-w-[60%] whitespace-pre-line">
                 {{ orderSummary }}
               </div>
             </div>
@@ -153,12 +139,25 @@
                 v-model="form.studentNumber"
                 type="number"
                 min="1"
-                max="40"
-                placeholder="1-40"
+                max="30"
+                placeholder="1-30"
                 class="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-text-primary shadow-sm transition focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
                 @input="enforceNumberRange"
               />
               <p v-if="errors.studentNumber" class="mt-1 text-sm text-red-500">{{ errors.studentNumber }}</p>
+            </div>
+
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text-primary">
+                เบอร์โทรผู้ปกครอง <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="form.guardianPhone"
+                type="tel"
+                placeholder="08x-xxx-xxxx"
+                class="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-text-primary shadow-sm transition focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              />
+              <p v-if="errors.guardianPhone" class="mt-1 text-sm text-red-500">{{ errors.guardianPhone }}</p>
             </div>
           </div>
         </section>
@@ -178,18 +177,26 @@
             <div class="rounded-xl bg-gray-50 p-4 space-y-2 text-sm">
               <p class="flex justify-between">
                 <span class="text-text-secondary">ชื่อบัญชี:</span>
-                <span class="font-medium text-text-primary">โรงเรียนบ้าน CSR</span>
+                <span class="font-medium text-text-primary">น.ส. ธันยรัตน์ เลี่ยนกัตวา</span>
               </p>
               <p class="flex justify-between">
                 <span class="text-text-secondary">เลขบัญชี:</span>
-                <span class="font-mono font-medium text-text-primary">123-4-56789-0</span>
+                <span class="font-mono font-medium text-text-primary">XXX-X-X0453-x</span>
               </p>
               <p class="flex justify-between">
                 <span class="text-text-secondary">ธนาคาร:</span>
-                <span class="font-medium text-text-primary">ไทยพาณิชย์</span>
+                <span class="font-medium text-text-primary">กสิกรไทย</span>
               </p>
             </div>
-            <p class="mt-2 text-xs text-gray-500">* แก้ไขข้อมูลบัญชีได้ที่ไฟล์นี้ (ค้นหา "โรงเรียนบ้าน CSR")</p>
+
+            <!-- QR Code -->
+            <div class="mt-4 text-center">
+              <p class="mb-2 text-sm font-bold text-text-primary">📱 สแกน QR โอนเงิน</p>
+              <a href="/images/qr-payment.jpg" download="qr-payment.jpg">
+                <img src="/images/qr-payment.jpg" alt="QR โอนเงิน" class="w-full h-auto object-contain rounded-lg" loading="lazy" />
+              </a>
+              <p class="mt-1 text-xs text-gray-500">แตะค้างที่รูปเพื่อบันทึก / คลิกเพื่อดาวน์โหลด</p>
+            </div>
           </div>
 
           <!-- Slip Upload -->
@@ -247,8 +254,8 @@ import { useShirtOrder } from '../composables/useShirtOrder';
 import { useLiff } from '../composables/useLiff';
 import { submitShirtOrder } from '../services/shirtOrderApi';
 
-const shirtImageA = ref('/images/shirt-a.svg');
-const shirtImageB = ref('/images/shirt-b.svg');
+const shirtImageA = ref('/images/shirt-a.jpg');
+const shirtImageB = ref('/images/shirt-b.jpg');
 
 function onImageError(event) {
   const el = event.target;
@@ -304,8 +311,10 @@ function getSizeInfo(size) {
 }
 
 const canSubmit = computed(() => {
+  const studentNum = form.studentNumber;
   return form.studentName?.trim().length > 0 &&
-    form.studentNumber?.trim().length > 0 &&
+    studentNum !== '' && studentNum != null && !isNaN(Number(studentNum)) &&
+    form.guardianPhone?.trim().length > 0 &&
     totalQuantity.value > 0 &&
     slipFile.value !== null;
 });
@@ -369,6 +378,13 @@ async function submitOrder() {
 }
 
 onMounted(() => {
+  // Require LIFF login before accessing order page
+  const token = getAccessToken();
+  if (!token) {
+    login();
+    return;
+  }
+
   // Pre-fill LINE display name from profile
   if (profile.value?.displayName) {
     form.lineDisplayName = profile.value.displayName;

@@ -8,6 +8,7 @@ public class ShirtOrderRequest
     public string LineDisplayName { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;
     public string StudentNumber { get; set; } = string.Empty;
+    public string GuardianPhone { get; set; } = string.Empty;
     public List<ShirtOrderItem> Items { get; set; } = new();
     public decimal TotalAmount { get; set; }
 }

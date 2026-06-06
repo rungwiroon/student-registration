@@ -27,6 +27,7 @@ public interface IGoogleSheetsService
         string lineDisplayName,
         string studentName,
         string studentNumber,
+        string guardianPhone,
         string orderSummary,
         decimal totalAmount,
         string slipUrl,
@@ -40,11 +41,16 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
     private readonly string _spreadsheetId;
     private readonly string _sheetName;
 
-    public GoogleSheetsService(IOptions<GoogleSheetsOptions> options)
+    public GoogleSheetsService(IOptions<GoogleSheetsOptions> options, ILogger<GoogleSheetsService> logger)
     {
         var opts = options.Value;
         _spreadsheetId = opts.SpreadsheetId;
         _sheetName = opts.SheetName;
+
+        logger.LogInformation("[GoogleSheets] CredentialsPath={Path}, Exists={Exists}, SpreadsheetId={SpreadsheetId}",
+            opts.CredentialsPath,
+            !string.IsNullOrWhiteSpace(opts.CredentialsPath) && File.Exists(opts.CredentialsPath),
+            _spreadsheetId);
 
         if (!string.IsNullOrWhiteSpace(opts.CredentialsPath) && File.Exists(opts.CredentialsPath))
         {
@@ -59,15 +65,15 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
                 HttpClientInitializer = credential,
                 ApplicationName = "CSR School Shirt Order"
             });
+            logger.LogInformation("[GoogleSheets] Service initialized with credentials from {Path}", opts.CredentialsPath);
         }
         else
         {
-            // Fallback: create uninitialized service for environments without credentials
-            // The AppendOrderRowAsync will return an error if credentials are missing.
             _sheetsService = new SheetsService(new BaseClientService.Initializer
             {
                 ApplicationName = "CSR School Shirt Order"
             });
+            logger.LogWarning("[GoogleSheets] Credentials file not found at {Path}. Service initialized WITHOUT credentials.", opts.CredentialsPath);
         }
     }
 
@@ -76,6 +82,7 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
         string lineDisplayName,
         string studentName,
         string studentNumber,
+        string guardianPhone,
         string orderSummary,
         decimal totalAmount,
         string slipUrl,
@@ -89,17 +96,33 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
                 return AppError.Internal("Google Sheets SpreadsheetId is not configured.");
             }
 
-            var range = $"{_sheetName}!A:H";
+            // Count existing rows by reading column A
+            int nextRow;
+            try
+            {
+                var getReq = _sheetsService.Spreadsheets.Values.Get(_spreadsheetId, $"{_sheetName}!A:A");
+                var getResp = await getReq.ExecuteAsync(cancellationToken);
+                var existingRows = getResp.Values?.Count ?? 0;
+                nextRow = existingRows + 1;
+            }
+            catch (Google.GoogleApiException gex) when (gex.HttpStatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // Sheet might be empty or name mismatch; start at row 1
+                nextRow = 1;
+            }
+
+            var range = $"{_sheetName}!A{nextRow}:I{nextRow}";
             var valueRange = new ValueRange
             {
                 Values = new List<IList<object>>
                 {
                     new List<object>
                     {
-                        orderDateUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                        ConvertToBangkokTime(orderDateUtc).ToString("yyyy-MM-dd HH:mm:ss"),
                         lineDisplayName ?? string.Empty,
                         studentName ?? string.Empty,
                         studentNumber ?? string.Empty,
+                        $"'{guardianPhone ?? string.Empty}",
                         orderSummary ?? string.Empty,
                         totalAmount,
                         slipUrl ?? string.Empty,
@@ -108,18 +131,31 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
                 }
             };
 
-            var request = _sheetsService.Spreadsheets.Values.Append(valueRange, _spreadsheetId, range);
-            request.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
-            request.InsertDataOption = SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum.INSERTROWS;
+            var request = _sheetsService.Spreadsheets.Values.Update(valueRange, _spreadsheetId, range);
+            request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
 
             var response = await request.ExecuteAsync(cancellationToken);
-            var updatedRange = response?.Updates?.UpdatedRange ?? "unknown";
+            var updatedRange = response?.UpdatedRange ?? "unknown";
 
             return updatedRange;
         }
         catch (Exception ex)
         {
             return AppError.Internal($"Failed to append order to Google Sheets: {ex.Message}");
+        }
+    }
+
+    private static DateTime ConvertToBangkokTime(DateTime utcDateTime)
+    {
+        try
+        {
+            var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+            return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, bangkokTimeZone);
+        }
+        catch
+        {
+            // Fallback: add 7 hours manually if timezone not found
+            return utcDateTime.AddHours(7);
         }
     }
 }

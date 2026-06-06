@@ -45,7 +45,7 @@ const routes = [
     component: () => import('../views/ShirtOrder.vue'),
     meta: {
       frontofficeHeader: {
-        title: 'สั่งซื้อเสื้อนักเรียน',
+        title: 'สั่งซื้อเสื้อ POLO ม.1/2',
         showBack: true,
         showHome: true
       }

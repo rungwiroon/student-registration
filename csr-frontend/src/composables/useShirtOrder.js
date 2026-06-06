@@ -1,8 +1,8 @@
 import { reactive, ref, computed } from 'vue';
 
 const SIZES = ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
-const DESIGNS = ['A', 'B'];
-const UNIT_PRICE = 250; // ฿ per shirt
+const DESIGNS = ['1', '2'];
+const UNIT_PRICE = 260; // บาท per shirt
 
 function createEmptyItems() {
   const items = [];
@@ -19,6 +19,7 @@ function createFormState() {
     lineDisplayName: '',
     studentName: '',
     studentNumber: '',
+    guardianPhone: '',
     items: createEmptyItems()
   };
 }
@@ -27,6 +28,7 @@ function createEmptyErrors() {
   return {
     studentName: '',
     studentNumber: '',
+    guardianPhone: '',
     items: '',
     slip: ''
   };
@@ -58,9 +60,9 @@ export function useShirtOrder() {
       }
     }
     const parts = Object.entries(byDesign).map(([design, sizes]) => {
-      return `แบบ ${design} (${sizes.join(', ')})`;
+      return `แบบที่ ${design} (${sizes.join(', ')})`;
     });
-    return parts.join('; ');
+    return parts.join('\n');
   });
 
   const hasItems = computed(() => totalQuantity.value > 0);
@@ -101,6 +103,7 @@ export function useShirtOrder() {
     let valid = true;
     errors.studentName = '';
     errors.studentNumber = '';
+    errors.guardianPhone = '';
     errors.items = '';
     errors.slip = '';
 
@@ -115,6 +118,11 @@ export function useShirtOrder() {
       valid = false;
     } else if (num < 1 || num > 40) {
       errors.studentNumber = 'เลขที่ต้องอยู่ระหว่าง 1-40';
+      valid = false;
+    }
+
+    if (!form.guardianPhone || form.guardianPhone.trim().length === 0) {
+      errors.guardianPhone = 'กรุณากรอกเบอร์โทรผู้ปกครอง';
       valid = false;
     }
 

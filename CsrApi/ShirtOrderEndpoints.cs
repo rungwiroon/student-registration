@@ -64,6 +64,7 @@ public static class ShirtOrderEndpoints
                 order.LineDisplayName,
                 order.StudentName,
                 order.StudentNumber,
+                order.GuardianPhone,
                 orderSummary,
                 order.TotalAmount,
                 storedSlip.PublicUrl,
@@ -82,19 +83,13 @@ public static class ShirtOrderEndpoints
         });
 
         // GET /api/v1/school-shirt/slips/{ownerKey}/{fileName}
+        // Public access: URL contains SHA256 hash of ownerKey (security through obscurity)
         app.MapGet("/api/v1/school-shirt/slips/{ownerKey}/{fileName}", async (
             HttpContext context,
             ISlipStorageService slipStorage,
             string ownerKey,
             string fileName) =>
         {
-            // Require LIFF auth for viewing slips
-            var lineUserId = GetLineUserId(context);
-            if (lineUserId is null)
-            {
-                return Results.Unauthorized();
-            }
-
             var result = await slipStorage.OpenReadAsync(ownerKey, fileName, context.RequestAborted);
             if (result.IsLeft)
             {
@@ -166,10 +161,10 @@ public static class ShirtOrderEndpoints
             .Select(g =>
             {
                 var sizes = g.Select(i => $"{i.Size}={i.Quantity}");
-                return $"แบบ {g.Key} ({string.Join(", ", sizes)})";
+                return $"แบบที่ {g.Key} ({string.Join(", ", sizes)})";
             });
 
-        return string.Join("; ", byDesign);
+        return string.Join("\n", byDesign);
     }
 
     private static IResult ToErrorResult(AppError error)
