@@ -5,19 +5,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { useLiff } from './composables/useLiff';
 
 const route = useRoute();
 const isBackoffice = computed(() => {
   return route.path.startsWith('/backoffice');
-});
-
-const { init } = useLiff();
-
-onMounted(() => {
-  // Init LIFF once when the SPA first loads to refresh token & profile
-  init();
 });
 </script>

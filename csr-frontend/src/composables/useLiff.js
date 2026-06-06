@@ -69,15 +69,8 @@ export function useLiff() {
 
       const loggedIn = window.liff.isLoggedIn?.() ?? false;
       if (!loggedIn) {
-        isReady.value = false;
-        accessToken.value = '';
-        profile.value = null;
-        try {
-          window.localStorage.removeItem(LIFF_TOKEN_KEY);
-          window.localStorage.removeItem(LIFF_USER_ID_KEY);
-          window.localStorage.removeItem(LIFF_DISPLAY_NAME_KEY);
-          window.localStorage.removeItem(LIFF_IN_CLIENT_KEY);
-        } catch {}
+        // External browser without active LIFF session — keep existing localStorage
+        // token so the app can still function. init() is best-effort refresh only.
         return;
       }
 
