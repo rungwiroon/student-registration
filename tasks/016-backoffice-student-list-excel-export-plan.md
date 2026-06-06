@@ -135,7 +135,7 @@ first pass ให้ export จากหน้า `BackofficeStudentListView` �
 ### **C: Exported columns (first pass recommendation)**
 สำหรับ `Teacher`:
 - รหัสนักเรียน (`StudentId`)
-- ชื่อ-นามสกุล (`Name`)
+- ชื่อ (`Name`)
 - ชื่อเล่น (`Nickname`)
 - ห้อง (`NewRoom`)
 - เลขที่ (`NewNo`)

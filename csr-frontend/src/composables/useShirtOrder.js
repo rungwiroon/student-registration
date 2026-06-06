@@ -1,6 +1,6 @@
 import { reactive, ref, computed } from 'vue';
 
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL'];
+const SIZES = ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
 const DESIGNS = ['A', 'B'];
 const UNIT_PRICE = 250; // ฿ per shirt
 

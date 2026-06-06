@@ -67,30 +67,7 @@
           <p class="mt-2 text-xs text-gray-500">* แทนที่ไฟล์รูปในโฟลเดอร์ <code>public/images/</code></p>
         </section>
 
-        <!-- Size Chart -->
-        <section>
-          <h2 class="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">ตารางขนาดเสื้อ</h2>
-          <div class="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-gray-100 text-text-secondary">
-                  <th class="px-3 py-2 text-left font-semibold">ไซส์</th>
-                  <th class="px-3 py-2 text-center font-semibold">รอบอก (นิ้ว)</th>
-                  <th class="px-3 py-2 text-center font-semibold">ความยาว (นิ้ว)</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                <tr v-for="row in sizeChart" :key="row.size" class="hover:bg-gray-50">
-                  <td class="px-3 py-2 font-medium text-text-primary">{{ row.size }}</td>
-                  <td class="px-3 py-2 text-center text-text-secondary">{{ row.chest }}</td>
-                  <td class="px-3 py-2 text-center text-text-secondary">{{ row.length }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Quantity Selection -->
+        <!-- Quantity Selection (with inline size chart) -->
         <section>
           <h2 class="mb-3 text-sm font-bold uppercase tracking-wider text-text-secondary">เลือกจำนวน</h2>
 
@@ -102,6 +79,7 @@
             <div class="grid grid-cols-3 gap-2">
               <div v-for="size in SIZES" :key="`${design}-${size}`" class="rounded-xl border border-border bg-surface p-2 text-center shadow-sm">
                 <p class="text-xs font-bold text-text-secondary">{{ size }}</p>
+                <p class="text-[10px] text-gray-400 leading-tight">{{ getSizeInfo(size) }}</p>
                 <div class="mt-1 flex items-center justify-center gap-1">
                   <button
                     type="button"
@@ -161,7 +139,7 @@
               <input
                 v-model="form.studentName"
                 type="text"
-                placeholder="ชื่อ-นามสกุลนักเรียน"
+                placeholder="ชื่อนักเรียน"
                 class="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-text-primary shadow-sm transition focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
               />
               <p v-if="errors.studentName" class="mt-1 text-sm text-red-500">{{ errors.studentName }}</p>
@@ -304,18 +282,23 @@ const {
 const { getAccessToken, profile } = useLiff();
 
 const sizeChart = [
-  { size: 'XS', chest: '32-34', length: '26' },
-  { size: 'S', chest: '34-36', length: '27' },
-  { size: 'M', chest: '36-38', length: '28' },
-  { size: 'L', chest: '38-40', length: '29' },
-  { size: 'XL', chest: '40-42', length: '30' },
-  { size: '2XL', chest: '42-44', length: '31' },
-  { size: '3XL', chest: '44-46', length: '32' },
-  { size: '4XL', chest: '46-48', length: '33' },
-  { size: '5XL', chest: '48-50', length: '34' },
-  { size: '6XL', chest: '50-52', length: '35' },
-  { size: '7XL', chest: '52-54', length: '36' }
+  { size: '2XS', chest: '32', length: '22' },
+  { size: 'XS', chest: '34', length: '23' },
+  { size: 'S', chest: '36', length: '26' },
+  { size: 'M', chest: '38', length: '27' },
+  { size: 'L', chest: '40', length: '28' },
+  { size: 'XL', chest: '42', length: '29' },
+  { size: '2XL', chest: '44', length: '30' },
+  { size: '3XL', chest: '46', length: '31' },
+  { size: '4XL', chest: '48', length: '32' },
+  { size: '5XL', chest: '50', length: '33' },
+  { size: '6XL', chest: '52', length: '33' }
 ];
+
+function getSizeInfo(size) {
+  const info = sizeChart.find(s => s.size === size);
+  return info ? `อก ${info.chest}"/ยาว ${info.length}"` : '';
+}
 
 const canSubmit = computed(() => {
   return form.studentName?.trim().length > 0 &&
