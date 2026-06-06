@@ -109,8 +109,12 @@ export function useShirtOrder() {
       valid = false;
     }
 
-    if (!form.studentNumber || form.studentNumber.trim().length === 0) {
+    const num = parseInt(form.studentNumber, 10);
+    if (!form.studentNumber || isNaN(num)) {
       errors.studentNumber = 'กรุณากรอกเลขที่';
+      valid = false;
+    } else if (num < 1 || num > 40) {
+      errors.studentNumber = 'เลขที่ต้องอยู่ระหว่าง 1-40';
       valid = false;
     }
 

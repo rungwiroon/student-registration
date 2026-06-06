@@ -134,7 +134,7 @@
           <div class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
             <div>
               <label class="mb-1 block text-sm font-medium text-text-primary">
-                ชื่อ-นามสกุล <span class="text-red-500">*</span>
+                ชื่อ <span class="text-red-500">*</span>
               </label>
               <input
                 v-model="form.studentName"
@@ -151,9 +151,12 @@
               </label>
               <input
                 v-model="form.studentNumber"
-                type="text"
-                placeholder="เลขที่"
+                type="number"
+                min="1"
+                max="40"
+                placeholder="1-40"
                 class="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-text-primary shadow-sm transition focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                @input="enforceNumberRange"
               />
               <p v-if="errors.studentNumber" class="mt-1 text-sm text-red-500">{{ errors.studentNumber }}</p>
             </div>
@@ -310,6 +313,13 @@ const canSubmit = computed(() => {
 function getQuantity(design, size) {
   const item = form.items.find(i => i.design === design && i.size === size);
   return item?.quantity || 0;
+}
+
+function enforceNumberRange(event) {
+  const value = parseInt(event.target.value, 10);
+  if (isNaN(value)) return;
+  if (value < 1) form.studentNumber = '1';
+  else if (value > 40) form.studentNumber = '40';
 }
 
 function onSlipChange(event) {
