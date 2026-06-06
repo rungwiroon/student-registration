@@ -133,7 +133,6 @@
 
 ### Removed Fields
 - ❌ ชั้น/ห้อง (Class/Room) — not needed, single class use
-- ❌ เบอร์โทรศัพท์ (Phone) — LINE communication only
 
 ### Added Fields
 - ✅ เลขที่ (Student Number) — e.g., "12"
