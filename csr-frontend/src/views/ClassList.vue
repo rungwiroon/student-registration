@@ -24,7 +24,7 @@
     <div v-else class="overflow-hidden rounded-xl border border-border bg-surface shadow-sm divide-y divide-border">
       <div v-for="(student, index) in students" :key="student.id || index" class="flex items-center space-x-4 p-4 transition hover:bg-surface-muted">
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary-soft font-bold text-brand-primary-strong">
-          {{ index + 1 }}
+          {{ student.newNo ?? '-' }}
         </div>
         <div>
           <!-- Backend performs PDPA masking -->

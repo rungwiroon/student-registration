@@ -179,7 +179,7 @@ public class StudentRepository : IStudentRepository
         try
         {
             using var connection = GetConnection();
-            var students = await connection.QueryAsync<Student>("SELECT * FROM Students");
+            var students = await connection.QueryAsync<Student>("SELECT * FROM Students ORDER BY COALESCE(NewNo, 9999)");
             return students.ToList();
         }
         catch (Exception ex)

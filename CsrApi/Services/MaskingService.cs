@@ -18,7 +18,8 @@ public class MaskingService : IMaskingService
             MaskedStudentId = MaskStudentId(student.StudentId),
             MaskedName = MaskName(plainName),
             MaskedPhone = MaskPhone(plainPhone),
-            Status = student.Status
+            Status = student.Status,
+            NewNo = student.NewNo
         };
     }
 
