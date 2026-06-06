@@ -18,6 +18,7 @@ services:
       - GoogleSheets__SpreadsheetId=${GOOGLE_SHEETS_SPREADSHEET_ID:-}
       - PublicBaseUrl=${PUBLIC_BASE_URL:-}
       - SlipStorage__RootPath=${SHIRT_ORDER_SLIP_PATH:-/app/data/ShirtOrderSlips}
+      - PhotoStorage__RootPath=/app/data/ProtectedUploads
     volumes:
       - app_data:/app/data
       - ./CsrApi/App_Data/GoogleCredentials:/app/credentials:ro
