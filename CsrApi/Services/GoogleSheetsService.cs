@@ -40,12 +40,14 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
     private readonly SheetsService _sheetsService;
     private readonly string _spreadsheetId;
     private readonly string _sheetName;
+    private readonly ILogger<GoogleSheetsService> _logger;
 
     public GoogleSheetsService(IOptions<GoogleSheetsOptions> options, ILogger<GoogleSheetsService> logger)
     {
         var opts = options.Value;
         _spreadsheetId = opts.SpreadsheetId;
         _sheetName = opts.SheetName;
+        _logger = logger;
 
         logger.LogInformation("[GoogleSheets] CredentialsPath={Path}, Exists={Exists}, SpreadsheetId={SpreadsheetId}",
             opts.CredentialsPath,
@@ -141,7 +143,8 @@ public sealed class GoogleSheetsService : IGoogleSheetsService
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Failed to append order to Google Sheets: {ex.Message}");
+            _logger.LogError(ex, "Failed to append order to Google Sheets");
+            return AppError.Internal("Failed to append order to Google Sheets.");
         }
     }
 

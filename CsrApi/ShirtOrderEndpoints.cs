@@ -10,7 +10,9 @@ using CsrApi.Services;
 using LanguageExt;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace CsrApi;
 
@@ -35,7 +37,7 @@ public static class ShirtOrderEndpoints
             {
                 return formDataResult.Match<IResult>(
                     Right: _ => Results.Ok(),
-                    Left: ToErrorResult);
+                    Left: err => ToErrorResult(err, context));
             }
 
             var formData = formDataResult.MatchUnsafe(data => data, _ => null)!;
@@ -47,7 +49,7 @@ public static class ShirtOrderEndpoints
             {
                 return slipResult.Match<IResult>(
                     Right: _ => Results.Ok(),
-                    Left: ToErrorResult);
+                    Left: err => ToErrorResult(err, context));
             }
 
             var storedSlip = slipResult.Match(
@@ -95,7 +97,7 @@ public static class ShirtOrderEndpoints
             {
                 return result.Match<IResult>(
                     Right: _ => Results.Ok(),
-                    Left: ToErrorResult);
+                    Left: err => ToErrorResult(err, context));
             }
 
             var slip = result.Match(
@@ -167,16 +169,26 @@ public static class ShirtOrderEndpoints
         return string.Join("\n", byDesign);
     }
 
-    private static IResult ToErrorResult(AppError error)
+    private static IResult ToErrorResult(AppError error, HttpContext context)
     {
+        var showDetails = context.RequestServices.GetRequiredService<IConfiguration>()
+            .GetValue<bool>("AppSettings:ShowDetailedErrors", context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment());
+        var body = showDetails ? error.Message : SanitizeMessage(error.StatusCode);
         return error.StatusCode switch
         {
-            StatusCodes.Status400BadRequest => Results.BadRequest(error.Message),
+            StatusCodes.Status400BadRequest => Results.BadRequest(body),
             StatusCodes.Status401Unauthorized => Results.Unauthorized(),
-            StatusCodes.Status404NotFound => Results.NotFound(error.Message),
+            StatusCodes.Status404NotFound => Results.NotFound(body),
             _ => Results.StatusCode(error.StatusCode)
         };
     }
+
+    private static string SanitizeMessage(int statusCode) => statusCode switch
+    {
+        StatusCodes.Status400BadRequest => "Invalid request.",
+        StatusCodes.Status404NotFound => "Not found.",
+        _ => "An error occurred."
+    };
 }
 
 public sealed record ShirtOrderFormData(ShirtOrderRequest Order, IFormFile SlipFile);

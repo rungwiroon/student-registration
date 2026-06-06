@@ -10,6 +10,7 @@ using CsrApi.Models;
 using LanguageExt;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CsrApi.Services;
@@ -49,10 +50,12 @@ public sealed class SlipStorageService : ISlipStorageService
     private readonly SlipStorageOptions _options;
     private readonly string _rootPath;
     private readonly string _publicBaseUrl;
+    private readonly ILogger<SlipStorageService> _logger;
 
-    public SlipStorageService(IOptions<SlipStorageOptions> options, IHostEnvironment environment, IConfiguration config)
+    public SlipStorageService(IOptions<SlipStorageOptions> options, IHostEnvironment environment, IConfiguration config, ILogger<SlipStorageService> logger)
     {
         _options = options.Value;
+        _logger = logger;
         _rootPath = Path.GetFullPath(Path.Combine(environment.ContentRootPath, _options.RootPath));
         Directory.CreateDirectory(_rootPath);
         _publicBaseUrl = config["PublicBaseUrl"]?.TrimEnd('/') ?? "";
@@ -93,7 +96,8 @@ public sealed class SlipStorageService : ISlipStorageService
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Failed to store slip securely: {ex.Message}");
+            _logger.LogError(ex, "Failed to store slip");
+            return AppError.Internal("Failed to store slip.");
         }
     }
 
@@ -123,7 +127,8 @@ public sealed class SlipStorageService : ISlipStorageService
         }
         catch (Exception ex)
         {
-            return Task.FromResult<Either<AppError, SlipReadResult>>(AppError.Internal($"Failed to read protected slip: {ex.Message}"));
+            _logger.LogError(ex, "Failed to read protected slip");
+            return Task.FromResult<Either<AppError, SlipReadResult>>(AppError.Internal("Failed to read protected slip."));
         }
     }
 

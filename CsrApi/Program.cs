@@ -28,9 +28,17 @@ builder.Services.AddHttpClient();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // API runs inside Docker behind nginx; trust the internal proxy
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    // API runs inside Docker behind nginx; trust only configured proxy networks.
+    // Do NOT clear KnownProxies/KnownIPNetworks — that disables the trust check entirely
+    // and lets clients spoof X-Forwarded-For to bypass per-IP rate limiting.
+    var trustedProxies = builder.Configuration.GetSection("ForwardedHeaders:TrustedProxies").Get<string[]>() ?? Array.Empty<string>();
+    foreach (var cidr in trustedProxies)
+    {
+        if (System.Net.IPNetwork.TryParse(cidr, out var network))
+        {
+            options.KnownIPNetworks.Add(network);
+        }
+    }
 });
 
 // CORS
@@ -199,7 +207,7 @@ app.MapPost("/api/bootstrap", async (
 });
 
 // Minimal API Endpoints
-app.MapPost("/api/students", async (StudentRequest request, IStudentRepository repo, IEncryptionService encryption) =>
+app.MapPost("/api/students", async (HttpContext context, StudentRequest request, IStudentRepository repo, IEncryptionService encryption) =>
 {
     var student = new Student
     {
@@ -214,24 +222,22 @@ app.MapPost("/api/students", async (StudentRequest request, IStudentRepository r
 
     return result.Match(
         Right: _ => Results.Created($"/api/students/{student.Id}", student.Id),
-        Left: err => err.StatusCode == 400 ? Results.BadRequest(err.Message) : Results.StatusCode(err.StatusCode)
-    );
+        Left: err => ToErrorResult(err, context));
 });
 
-app.MapGet("/api/students/{id}", async (Guid id, IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
+app.MapGet("/api/students/{id}", async (HttpContext context, Guid id, IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
 {
     var result = await repo.GetStudentByIdAsync(id);
 
     return result.Match(
-        Right: student => 
+        Right: student =>
         {
             var plainName = encryption.Decrypt(student.EncryptedName);
             var plainPhone = string.IsNullOrEmpty(student.EncryptedPhone) ? string.Empty : encryption.Decrypt(student.EncryptedPhone);
             var maskedDto = masking.Mask(student, plainName, plainPhone);
             return Results.Ok(maskedDto);
         },
-        Left: err => err.StatusCode == 404 ? Results.NotFound(err.Message) : Results.StatusCode(err.StatusCode)
-    );
+        Left: err => ToErrorResult(err, context));
 });
 
 app.MapPost("/api/register", async (HttpContext context, IRegistrationService requestServices) =>
@@ -247,7 +253,7 @@ app.MapPost("/api/register", async (HttpContext context, IRegistrationService re
     {
         return formDataResult.Match<IResult>(
             Right: _ => Results.Ok(),
-            Left: ToErrorResult);
+            Left: err => ToErrorResult(err, context));
     }
 
     var formData = formDataResult.MatchUnsafe(data => data, _ => null)!;
@@ -260,7 +266,7 @@ app.MapPost("/api/register", async (HttpContext context, IRegistrationService re
 
     return result.Match(
         Right: studentId => Results.Ok(new { Message = "Registration successful", StudentId = studentId }),
-        Left: ToErrorResult);
+        Left: err => ToErrorResult(err, context));
 });
 
 app.MapGet("/api/me", async (HttpContext context, IRegistrationService requestServices) =>
@@ -274,7 +280,7 @@ app.MapGet("/api/me", async (HttpContext context, IRegistrationService requestSe
     var result = await requestServices.GetMyProfileAsync(lineUserId, context.RequestAborted);
     return result.Match(
         Right: profile => Results.Ok(profile),
-        Left: ToErrorResult);
+        Left: err => ToErrorResult(err, context));
 });
 
 app.MapGet("/api/me/student-photo", async (HttpContext context, IRegistrationService requestServices) =>
@@ -290,7 +296,7 @@ app.MapGet("/api/me/student-photo", async (HttpContext context, IRegistrationSer
     {
         return result.Match<IResult>(
             Right: _ => Results.Ok(),
-            Left: ToErrorResult);
+            Left: err => ToErrorResult(err, context));
     }
 
     var photo = result.Match(
@@ -313,7 +319,7 @@ app.MapGet("/api/me/guardian-photo/{guardianOrder:int}", async (HttpContext cont
     {
         return result.Match<IResult>(
             Right: _ => Results.Ok(),
-            Left: ToErrorResult);
+            Left: err => ToErrorResult(err, context));
     }
 
     var photo = result.Match(
@@ -334,7 +340,7 @@ app.MapGet("/api/me/introduction-document", async (HttpContext context, IRegistr
     var result = await requestServices.GetIntroductionDocumentAsync(lineUserId, context.RequestAborted);
     return result.Match(
         Right: document => Results.Ok(document),
-        Left: ToErrorResult);
+        Left: err => ToErrorResult(err, context));
 });
 
 app.MapPost("/api/me/sync-display-name", async (HttpContext context, IStudentRepository repo) =>
@@ -354,7 +360,7 @@ app.MapPost("/api/me/sync-display-name", async (HttpContext context, IStudentRep
     var result = await repo.UpdateGuardianDisplayNameAsync(lineUserId, request.DisplayName);
     return result.Match(
         Right: _ => Results.Ok(new { Message = "Display name synced." }),
-        Left: ToErrorResult);
+        Left: err => ToErrorResult(err, context));
 });
 
 app.MapGet("/api/class", async (IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
@@ -457,16 +463,26 @@ static async Task<LanguageExt.Either<AppError, RegistrationFormData>> ReadRegist
     }
 }
 
-static IResult ToErrorResult(AppError error)
+static IResult ToErrorResult(AppError error, HttpContext ctx)
 {
+    var showDetails = ctx.RequestServices.GetRequiredService<IConfiguration>()
+        .GetValue<bool>("AppSettings:ShowDetailedErrors", ctx.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment());
+    var body = showDetails ? error.Message : SanitizeMessage(error.StatusCode);
     return error.StatusCode switch
     {
-        StatusCodes.Status400BadRequest => Results.BadRequest(error.Message),
+        StatusCodes.Status400BadRequest => Results.BadRequest(body),
         StatusCodes.Status401Unauthorized => Results.Unauthorized(),
-        StatusCodes.Status404NotFound => Results.NotFound(error.Message),
+        StatusCodes.Status404NotFound => Results.NotFound(body),
         _ => Results.StatusCode(error.StatusCode)
     };
 }
+
+static string SanitizeMessage(int statusCode) => statusCode switch
+{
+    StatusCodes.Status400BadRequest => "Invalid request.",
+    StatusCodes.Status404NotFound => "Not found.",
+    _ => "An error occurred."
+};
 
 // Request Dto
 public class StudentRequest 

@@ -8,6 +8,7 @@ using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace CsrApi.Repositories;
 
@@ -31,10 +32,12 @@ public interface IStudentRepository
 public class StudentRepository : IStudentRepository
 {
     private readonly string _connectionString;
+    private readonly ILogger<StudentRepository> _logger;
 
-    public StudentRepository(IConfiguration configuration)
+    public StudentRepository(IConfiguration configuration, ILogger<StudentRepository> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection");
+        _logger = logger;
         if (string.IsNullOrWhiteSpace(_connectionString))
         {
             throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
@@ -151,7 +154,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -172,7 +176,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -186,7 +191,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -207,7 +213,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -257,7 +264,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -324,7 +332,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -383,7 +392,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -440,7 +450,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -456,7 +467,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -471,7 +483,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -532,7 +545,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 
@@ -552,7 +566,8 @@ public class StudentRepository : IStudentRepository
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Database error: {ex.Message}");
+            _logger.LogError(ex, "Database error");
+            return AppError.Internal("Database error.");
         }
     }
 }

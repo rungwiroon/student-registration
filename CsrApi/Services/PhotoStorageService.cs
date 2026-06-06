@@ -10,6 +10,7 @@ using CsrApi.Models;
 using LanguageExt;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CsrApi.Services;
@@ -56,10 +57,12 @@ public sealed class PhotoStorageService : IPhotoStorageService
 
     private readonly PhotoStorageOptions _options;
     private readonly string _rootPath;
+    private readonly ILogger<PhotoStorageService> _logger;
 
-    public PhotoStorageService(IOptions<PhotoStorageOptions> options, IHostEnvironment environment)
+    public PhotoStorageService(IOptions<PhotoStorageOptions> options, IHostEnvironment environment, ILogger<PhotoStorageService> logger)
     {
         _options = options.Value;
+        _logger = logger;
         _rootPath = Path.GetFullPath(Path.Combine(environment.ContentRootPath, _options.RootPath));
         Directory.CreateDirectory(_rootPath);
     }
@@ -98,7 +101,8 @@ public sealed class PhotoStorageService : IPhotoStorageService
         }
         catch (Exception ex)
         {
-            return AppError.Internal($"Failed to store photo securely: {ex.Message}");
+            _logger.LogError(ex, "Failed to store photo");
+            return AppError.Internal("Failed to store photo.");
         }
     }
 
@@ -128,7 +132,8 @@ public sealed class PhotoStorageService : IPhotoStorageService
         }
         catch (Exception ex)
         {
-            return Task.FromResult<Either<AppError, PhotoReadResult>>(AppError.Internal($"Failed to read protected photo: {ex.Message}"));
+            _logger.LogError(ex, "Failed to read protected photo");
+            return Task.FromResult<Either<AppError, PhotoReadResult>>(AppError.Internal("Failed to read protected photo."));
         }
     }
 
