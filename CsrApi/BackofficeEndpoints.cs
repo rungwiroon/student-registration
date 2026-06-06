@@ -143,7 +143,7 @@ public static class BackofficeEndpoints
         });
 
         // GET /api/backoffice/registered-users — list guardians with LineUserId (Teacher-only)
-        group.MapGet("/registered-users", async (HttpContext ctx, IStudentRepository repo, IEncryptionService encryption, ILineProfileService lineProfile) =>
+        group.MapGet("/registered-users", async (HttpContext ctx, IStudentRepository repo, IEncryptionService encryption) =>
         {
             var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
             if (!policy.CanManageStaff(ctx))
@@ -155,22 +155,10 @@ public static class BackofficeEndpoints
 
             var guardians = result.Match(Right: g => g, Left: _ => new List<Guardian>());
 
-            var lineUserIds = guardians
-                .Where(g => string.IsNullOrWhiteSpace(g.LineDisplayName))
-                .Select(g => g.LineUserId)
-                .Where(uid => !string.IsNullOrEmpty(uid))
-                .ToList();
-
-            var lineNames = lineUserIds.Any()
-                ? await lineProfile.GetDisplayNamesAsync(lineUserIds!)
-                : new Dictionary<string, string>();
-
             var list = guardians.Select(g => new
             {
                 LineUserId = g.LineUserId,
-                LineDisplayName = !string.IsNullOrWhiteSpace(g.LineDisplayName)
-                    ? g.LineDisplayName
-                    : lineNames.GetValueOrDefault(g.LineUserId ?? ""),
+                LineDisplayName = g.LineDisplayName,
                 Name = string.IsNullOrEmpty(g.EncryptedName) ? "" : encryption.Decrypt(g.EncryptedName!),
                 Phone = string.IsNullOrEmpty(g.EncryptedPhone) ? "" : encryption.Decrypt(g.EncryptedPhone!),
                 RelationType = g.RelationType,
@@ -196,7 +184,7 @@ public static class BackofficeEndpoints
             );
         });
 
-        group.MapGet("/students/{id:guid}", async (HttpContext ctx, Guid id, IStudentRepository repo, IEncryptionService encryption, ILineProfileService lineProfile) =>
+        group.MapGet("/students/{id:guid}", async (HttpContext ctx, Guid id, IStudentRepository repo, IEncryptionService encryption) =>
         {
             var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
             var canViewFull = policy.CanViewFullProfile(ctx);
@@ -207,16 +195,6 @@ public static class BackofficeEndpoints
 
             var guardiansResult = await repo.GetGuardiansByStudentIdAsync(id);
             var guardians = guardiansResult.Match(g => g.ToList(), _ => new List<Guardian>());
-
-            var lineUserIds = guardians
-                .Where(g => string.IsNullOrWhiteSpace(g.LineDisplayName))
-                .Select(g => g.LineUserId)
-                .Where(uid => !string.IsNullOrEmpty(uid))
-                .ToList();
-
-            var lineNames = lineUserIds.Any()
-                ? await lineProfile.GetDisplayNamesAsync(lineUserIds!)
-                : new Dictionary<string, string>();
 
             if (canViewFull)
             {
@@ -247,9 +225,7 @@ public static class BackofficeEndpoints
                         Phone = string.IsNullOrEmpty(g.EncryptedPhone) ? "" : encryption.Decrypt(g.EncryptedPhone!),
                         Occupation = g.Occupation,
                         LineUserId = g.LineUserId,
-                        LineDisplayName = !string.IsNullOrWhiteSpace(g.LineDisplayName)
-                            ? g.LineDisplayName
-                            : lineNames.GetValueOrDefault(g.LineUserId ?? ""),
+                        LineDisplayName = g.LineDisplayName,
                         PhotoFileName = g.PhotoFileName
                     })
                 });
