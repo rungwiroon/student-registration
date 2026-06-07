@@ -27,9 +27,16 @@
       <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-brand-secondary opacity-15"></div>
       <div class="absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-white opacity-10"></div>
 
-      <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3 shadow-md z-10 relative overflow-hidden">
-        <img v-if="photoUrl" :src="photoUrl" alt="รูปนักเรียน" class="w-full h-full object-cover" />
-        <span v-else class="text-3xl">👦🏻</span>
+      <div
+        v-if="photoUrl"
+        class="w-20 h-20 bg-white rounded-full mx-auto mb-3 shadow-md z-10 relative overflow-hidden bg-cover bg-center select-none"
+        :style="{ backgroundImage: `url('${photoUrl}')` }"
+        @touchstart.stop.prevent="() => {}"
+        @contextmenu.stop.prevent
+        @dragstart.stop.prevent
+      ></div>
+      <div v-else class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3 shadow-md z-10 relative overflow-hidden">
+        <span class="text-3xl">👦🏻</span>
       </div>
       <h1 class="text-2xl font-bold relative z-10">{{ studentName }}</h1>
       <p class="mt-1 inline-block border-t border-white/30 px-4 pt-2 opacity-90 relative z-10">
@@ -168,6 +175,13 @@ async function loadData() {
 
     if (data.student?.photoUrl) {
       try {
+        // Revoke previous blob URL before allocating a new one.
+        // Reassigning without revoke leaks the underlying Blob, which
+        // accumulates across reloads and OOMs the Android WebView.
+        if (photoUrl.value) {
+          URL.revokeObjectURL(photoUrl.value);
+          photoUrl.value = null;
+        }
         photoUrl.value = await fetchProtectedPhotoUrl(token, data.student.photoUrl);
       } catch (err) {
         if (err instanceof UnauthorizedError) {

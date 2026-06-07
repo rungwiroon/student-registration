@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, onBeforeUnmount } from 'vue';
 import { apiJson, apiBlob } from '../services/apiClient';
 
 export function useIntroductionDocument() {
@@ -7,16 +7,34 @@ export function useIntroductionDocument() {
   const studentPhotoUrl = ref(null);
   const guardianPhotoUrls = ref({});
 
+  // Revoke all blob URLs to free memory. Critical on Android LINE WebView:
+  // failing to release blob URLs causes OOM crash that looks like a hang.
+  const revokeAll = () => {
+    if (studentPhotoUrl.value) {
+      URL.revokeObjectURL(studentPhotoUrl.value);
+      studentPhotoUrl.value = null;
+    }
+    for (const url of Object.values(guardianPhotoUrls.value)) {
+      if (url) URL.revokeObjectURL(url);
+    }
+    guardianPhotoUrls.value = {};
+  };
+
+  onBeforeUnmount(revokeAll);
+
   const fetchDocument = async (token) => {
     isLoading.value = true;
     try {
+      // Revoke previous run's blob URLs before allocating new ones
+      revokeAll();
+
       document.value = await apiJson('/api/me/introduction-document', token);
-      
+
       // Fetch photos
       if (document.value.student?.hasPhoto) {
         studentPhotoUrl.value = await fetchPhoto('/api/me/student-photo', token);
       }
-      
+
       if (document.value.guardians) {
         for (const guardian of document.value.guardians) {
           if (guardian.hasPhoto) {
@@ -27,7 +45,7 @@ export function useIntroductionDocument() {
           }
         }
       }
-      
+
       return document.value;
     } finally {
       isLoading.value = false;
@@ -61,6 +79,7 @@ export function useIntroductionDocument() {
     guardianPhotoUrls,
     fetchDocument,
     getGuardianPhotoUrl,
-    printDocument
+    printDocument,
+    revokeAll
   };
 }

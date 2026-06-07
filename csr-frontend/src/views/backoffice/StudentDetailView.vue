@@ -19,7 +19,14 @@
           <div class="flex justify-between items-start border-b pb-2 mb-4">
             <h2 class="text-lg font-bold text-gray-800">ข้อมูลนักเรียน</h2>
             <div class="w-16 h-20 bg-gray-100 border border-gray-300 rounded overflow-hidden shadow-sm shrink-0">
-              <img v-if="studentPhotoUrl" :src="studentPhotoUrl" class="w-full h-full object-cover" />
+              <div
+                v-if="studentPhotoUrl"
+                class="w-full h-full bg-cover bg-center select-none"
+                :style="{ backgroundImage: `url('${studentPhotoUrl}')` }"
+                @touchstart.stop.prevent="() => {}"
+                @contextmenu.stop.prevent
+                @dragstart.stop.prevent
+              ></div>
               <div v-else-if="!canViewPhotos() && detail.student.photoFileName === null" class="w-full h-full flex items-center justify-center text-xs text-gray-400">รูป</div>
               <div v-else-if="!canViewPhotos()" class="w-full h-full flex items-center justify-center text-xs text-amber-500 text-center px-1">ไม่มีสิทธิ์ดู</div>
               <div v-else class="w-full h-full flex items-center justify-center text-xs text-gray-400">รูป</div>
@@ -94,7 +101,14 @@
             <div class="flex justify-between items-start border-b pb-2 mb-4">
               <h3 class="font-bold text-gray-700">ผู้ปกครองท่านที่ {{ g.guardianOrder }} ({{ formatRelation(g.relationType) }})</h3>
               <div class="w-16 h-20 bg-gray-100 border border-gray-300 rounded overflow-hidden shadow-sm shrink-0">
-                <img v-if="guardianPhotoUrls[g.guardianOrder]" :src="guardianPhotoUrls[g.guardianOrder]" class="w-full h-full object-cover" />
+                <div
+                  v-if="guardianPhotoUrls[g.guardianOrder]"
+                  class="w-full h-full bg-cover bg-center select-none"
+                  :style="{ backgroundImage: `url('${guardianPhotoUrls[g.guardianOrder]}')` }"
+                  @touchstart.stop.prevent="() => {}"
+                  @contextmenu.stop.prevent
+                  @dragstart.stop.prevent
+                ></div>
                 <div v-else-if="!canViewPhotos() && g.photoFileName === null" class="w-full h-full flex items-center justify-center text-xs text-gray-400">รูป</div>
                 <div v-else-if="!canViewPhotos()" class="w-full h-full flex items-center justify-center text-xs text-amber-500 text-center px-1">ไม่มีสิทธิ์ดู</div>
                 <div v-else class="w-full h-full flex items-center justify-center text-xs text-gray-400">รูป</div>
@@ -121,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { fetchStudentDetail, updateStudentStatus, updateStudentNote, fetchStudentPhotoBlob, fetchGuardianPhotoBlob } from '../../services/backofficeApi';
 import { useLiff } from '../../composables/useLiff';
 import { useBackofficeAuth } from '../../composables/useBackofficeAuth';
@@ -177,6 +191,16 @@ onMounted(async () => {
 
     // Only fetch photos if user has permission
     if (canViewPhotos()) {
+      // Revoke any URLs from a previous mount before allocating new ones.
+      if (studentPhotoUrl.value) {
+        URL.revokeObjectURL(studentPhotoUrl.value);
+        studentPhotoUrl.value = null;
+      }
+      for (const url of Object.values(guardianPhotoUrls.value)) {
+        if (url) URL.revokeObjectURL(url);
+      }
+      guardianPhotoUrls.value = {};
+
       // Fetch student photo
       if (detail.value?.student?.photoFileName) {
         try {
@@ -210,6 +234,20 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+});
+
+// Release blob URLs on unmount — without this the underlying Blob stays
+// pinned in memory. On Android LINE WebView the leaked blobs accumulate and
+// eventually OOM the renderer, which looks to the user like a frozen page.
+onBeforeUnmount(() => {
+  if (studentPhotoUrl.value) {
+    URL.revokeObjectURL(studentPhotoUrl.value);
+    studentPhotoUrl.value = null;
+  }
+  for (const url of Object.values(guardianPhotoUrls.value)) {
+    if (url) URL.revokeObjectURL(url);
+  }
+  guardianPhotoUrls.value = {};
 });
 
 const saveStatus = async () => {

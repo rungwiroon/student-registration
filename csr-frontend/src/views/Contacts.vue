@@ -62,8 +62,16 @@ onMounted(async () => {
 
   try {
     const data = await apiJson('/api/directory', token);
-    teachers.value = data.teachers ?? [];
-    parentNetwork.value = data.parentNetwork ?? [];
+    // Order ParentNetwork positions: ประธาน → รองประธาน → เลขานุการ → เหรัญญิก → ทะเบียน → ประชาสัมพันธ์
+    const positionOrder = ['ประธาน', 'รองประธาน', 'เลขานุการ', 'เหรัญญิก', 'ทะเบียน', 'ประชาสัมพันธ์'];
+    const posRank = (p) => {
+      const idx = positionOrder.findIndex(k => (p ?? '').includes(k));
+      return idx === -1 ? positionOrder.length : idx;
+    };
+    const nameCmp = (a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'th');
+    const byPosThenName = (a, b) => posRank(a.position) - posRank(b.position) || nameCmp(a, b);
+    teachers.value = (data.teachers ?? []).slice().sort(byPosThenName);
+    parentNetwork.value = (data.parentNetwork ?? []).slice().sort(byPosThenName);
   } catch (err) {
     if (err instanceof UnauthorizedError) {
       return; // redirectToLogin จัดการแล้ว

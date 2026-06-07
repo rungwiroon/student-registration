@@ -10,7 +10,15 @@
 
     <div class="mt-4 overflow-hidden rounded-2xl border border-dashed border-gray-300 bg-white">
       <div v-if="previewUrl" class="aspect-square w-full bg-gray-100">
-        <img :src="previewUrl" :alt="title" class="h-full w-full object-cover" />
+        <div
+          class="h-full w-full bg-cover bg-center select-none"
+          :style="{ backgroundImage: `url('${previewUrl}')` }"
+          role="img"
+          :aria-label="title"
+          @touchstart.stop.prevent="() => {}"
+          @contextmenu.stop.prevent
+          @dragstart.stop.prevent
+        ></div>
       </div>
       <div v-else class="flex aspect-square w-full items-center justify-center bg-gray-50 text-sm text-gray-400">
         ยังไม่มีรูป
