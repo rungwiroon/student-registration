@@ -86,10 +86,10 @@
 
     <!-- Action Buttons -->
     <div class="space-y-3 pt-2">
-      <!-- Shirt Order — always visible, prominent -->
-      <router-link to="/shirt-order" class="block w-full rounded-2xl bg-gradient-to-r from-brand-secondary to-brand-secondary-strong px-6 py-5 text-center font-bold text-white shadow-lg transition hover:brightness-110 focus:ring-4 focus:ring-focus-ring active:scale-95">
-        <div class="text-lg">สั่งเสื้อรุ่น SKN50 ม. 1/2</div>
-        <div class="text-xs font-normal opacity-90 mt-1">คลิกที่นี่เพื่อสั่งซื้อ</div>
+      <!-- Venue vote for the parents' gathering -->
+      <router-link to="/venue-vote" class="block w-full rounded-2xl border-2 border-brand-primary bg-surface px-6 py-4 text-center font-bold text-brand-primary-strong shadow-sm transition hover:bg-brand-primary-soft focus:ring-4 focus:ring-focus-ring active:scale-95">
+        <div class="text-lg">โหวตสถานที่จัดกิจกรรม</div>
+        <div class="text-xs font-normal opacity-90 mt-1">คลิกที่นี่เพื่อโหวต</div>
       </router-link>
 
       <!-- Register / Edit Profile -->

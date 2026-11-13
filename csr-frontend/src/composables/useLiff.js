@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { entryUrlForCurrentPage } from '../utils/postLoginRedirect';
 
 export const LIFF_COMPOSABLE_VERSION = '2026-05-02-v3';
 
@@ -48,7 +49,8 @@ export function useLiff() {
   const closeWindow = () => window.liff?.closeWindow?.();
   const login = () => {
     if (typeof window !== 'undefined') {
-      window.location.href = '/liff-entry.html';
+      // Carry the current page along so login returns here, not to /dashboard.
+      window.location.href = entryUrlForCurrentPage();
     }
   };
 

@@ -8,6 +8,10 @@ export async function fetchDashboard(token) {
   return apiJson('/api/backoffice/dashboard', token);
 }
 
+export async function fetchVenueVoteSummary(token) {
+  return apiJson('/api/backoffice/venue-vote/summary', token);
+}
+
 export async function fetchStudents(token) {
   return apiJson('/api/backoffice/students', token);
 }

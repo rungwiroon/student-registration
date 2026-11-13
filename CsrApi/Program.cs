@@ -88,6 +88,8 @@ builder.Services.Configure<GoogleSheetsOptions>(builder.Configuration.GetSection
 builder.Services.AddSingleton<IGoogleSheetsService, GoogleSheetsService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.Configure<VenueVoteOptions>(builder.Configuration.GetSection("VenueVote"));
+builder.Services.AddScoped<IVenueVoteRepository, VenueVoteRepository>();
 builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IBackofficeStudentExportService, BackofficeStudentExportService>();
@@ -105,6 +107,7 @@ using (var scope = app.Services.CreateScope())
     var seeder = scope.ServiceProvider.GetRequiredService<IDevelopmentDataSeeder>();
     await repo.InitializeDatabaseAsync();
     await staffRepo.InitializeDatabaseAsync();
+    await scope.ServiceProvider.GetRequiredService<IVenueVoteRepository>().InitializeDatabaseAsync();
     await seeder.SeedAsync();
 }
 
@@ -152,6 +155,7 @@ app.UseMiddleware<LiffAuthMiddleware>();
 
 app.MapBackofficeEndpoints();
 app.MapShirtOrderEndpoints();
+app.MapVenueVoteEndpoints();
 app.MapHealthChecks("/health");
 
 // One-time bootstrap endpoint for first Teacher (self-disabling after use)

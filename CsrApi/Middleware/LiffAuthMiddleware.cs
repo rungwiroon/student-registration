@@ -13,6 +13,7 @@ public class LiffAuthMiddleware
     private readonly ILogger<LiffAuthMiddleware> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _liffChannelId;
+    private const string MockTokenUserPrefix = "mock-token:";
     private readonly bool _useMockAuth;
     private readonly string _mockUserId;
 
@@ -48,7 +49,12 @@ public class LiffAuthMiddleware
         if (_useMockAuth)
         {
             _logger.LogInformation("Using mock authentication for token: {Token}", token);
-            context.Items["LineUserId"] = _mockUserId;
+            // "mock-token:<id>" acts as that LINE user, so tests can exercise users the
+            // seed data does not know (e.g. a parent who has not registered yet).
+            // A plain token keeps using the configured Line:MockUserId.
+            context.Items["LineUserId"] = token.StartsWith(MockTokenUserPrefix, StringComparison.Ordinal) && token.Length > MockTokenUserPrefix.Length
+                ? token[MockTokenUserPrefix.Length..]
+                : _mockUserId;
             await _next(context);
             return;
         }

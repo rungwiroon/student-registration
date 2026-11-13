@@ -102,6 +102,54 @@
       inClient: 'liff_is_in_client'
     };
 
+    // Post-login deep link. Mirrors src/utils/postLoginRedirect.js (this page
+    // is standalone and cannot import it) — keep the key and rules in sync.
+    const POST_LOGIN_REDIRECT_KEY = 'csr_post_login_redirect';
+
+    // Accept same-origin paths only, so ?redirect= cannot send users off-site.
+    function toSafeInternalPath(value) {
+      if (typeof value !== 'string' || !/^\/(?![/\\])/.test(value)) return null;
+      try {
+        const url = new URL(value, location.origin);
+        if (url.origin !== location.origin) return null;
+        if (url.pathname === '/liff-entry.html') return null;
+        return url.pathname + url.search;
+      } catch {
+        return null;
+      }
+    }
+
+    // Target comes from our own ?redirect= or from LIFF's liff.state
+    // (set when a liff.line.me link carries a path or query string).
+    function readRedirectTarget(params) {
+      const direct = toSafeInternalPath(params.get('redirect'));
+      if (direct) return direct;
+      const liffState = params.get('liff.state');
+      if (!liffState) return null;
+      if (liffState.startsWith('?')) {
+        return toSafeInternalPath(new URLSearchParams(liffState).get('redirect'));
+      }
+      return toSafeInternalPath(liffState);
+    }
+
+    // Stored in sessionStorage because liff.login() leaves this page and the
+    // query string does not survive the round trip through LINE.
+    function rememberRedirectTarget() {
+      const target = readRedirectTarget(new URL(location.href).searchParams);
+      if (!target) return;
+      try { sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, target); } catch {}
+    }
+
+    function takeRedirectTarget() {
+      try {
+        const target = toSafeInternalPath(sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY));
+        sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+        return target || '/dashboard';
+      } catch {
+        return '/dashboard';
+      }
+    }
+
     function log(msg) {
       console.log('[Entry]', msg);
       const debug = document.getElementById('debug');
@@ -137,6 +185,7 @@
 
     async function runInit() {
       clearStorage();
+      rememberRedirectTarget();
       log('URL: ' + location.href);
 
       const url = new URL(location.href);
@@ -259,8 +308,9 @@
         window.history.replaceState({}, document.title, cleanUrl.toString());
       }
 
-      log('redirecting to /dashboard');
-      window.location.href = '/dashboard';
+      const target = takeRedirectTarget();
+      log('redirecting to ' + target);
+      window.location.href = target;
     }
 
     function retry() {
