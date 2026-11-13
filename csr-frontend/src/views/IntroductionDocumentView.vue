@@ -33,7 +33,14 @@
         <!-- Photo Row -->
         <div class="photo-row flex justify-center gap-8 mb-6">
           <div class="photo-box">
-            <img v-if="studentPhotoUrl" :src="studentPhotoUrl" alt="รูปนักเรียน" class="w-32 h-40 object-cover rounded-lg border-2 border-gray-300" />
+            <div
+              v-if="studentPhotoUrl"
+              class="w-32 h-40 bg-cover bg-center rounded-lg border-2 border-gray-300 select-none"
+              :style="{ backgroundImage: `url('${studentPhotoUrl}')` }"
+              @touchstart.stop.prevent="() => {}"
+              @contextmenu.stop.prevent
+              @dragstart.stop.prevent
+            ></div>
             <div v-else class="w-32 h-40 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
               ไม่มีรูป
             </div>
@@ -41,7 +48,16 @@
           </div>
           
           <div v-for="guardian in visibleGuardians" :key="guardian.order" class="photo-box">
-            <img v-if="getGuardianPhotoUrl(guardian.order)" :src="getGuardianPhotoUrl(guardian.order)" :alt="`รูปผู้ปกครองคนที่ ${guardian.order}`" class="w-32 h-40 object-cover rounded-lg border-2 border-gray-300" />
+            <div
+              v-if="getGuardianPhotoUrl(guardian.order)"
+              class="w-32 h-40 bg-cover bg-center rounded-lg border-2 border-gray-300 select-none"
+              :style="{ backgroundImage: `url('${getGuardianPhotoUrl(guardian.order)}')` }"
+              :alt="`รูปผู้ปกครองคนที่ ${guardian.order}`"
+              role="img"
+              @touchstart.stop.prevent="() => {}"
+              @contextmenu.stop.prevent
+              @dragstart.stop.prevent
+            ></div>
             <div v-else class="w-32 h-40 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
               ไม่มีรูป
             </div>

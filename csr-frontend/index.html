@@ -9,6 +9,19 @@
     <meta http-equiv="Expires" content="0" />
     <title>ทะเบียน ม.1/2</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      /* Disable native long-press image viewer on Android LINE WebView.
+         Long-pressing an <img> launches the WebView's draggable-image
+         preview, which blocks the JS event loop until dismissed — looking
+         like a frozen page. These rules suppress the gesture and callout. */
+      img, [style*="background-image"] {
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>

@@ -27,9 +27,16 @@
       <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-brand-secondary opacity-15"></div>
       <div class="absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-white opacity-10"></div>
 
-      <div class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3 shadow-md z-10 relative overflow-hidden">
-        <img v-if="photoUrl" :src="photoUrl" alt="รูปนักเรียน" class="w-full h-full object-cover" />
-        <span v-else class="text-3xl">👦🏻</span>
+      <div
+        v-if="photoUrl"
+        class="w-20 h-20 bg-white rounded-full mx-auto mb-3 shadow-md z-10 relative overflow-hidden bg-cover bg-center select-none"
+        :style="{ backgroundImage: `url('${photoUrl}')` }"
+        @touchstart.stop.prevent="() => {}"
+        @contextmenu.stop.prevent
+        @dragstart.stop.prevent
+      ></div>
+      <div v-else class="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3 shadow-md z-10 relative overflow-hidden">
+        <span class="text-3xl">👦🏻</span>
       </div>
       <h1 class="text-2xl font-bold relative z-10">{{ studentName }}</h1>
       <p class="mt-1 inline-block border-t border-white/30 px-4 pt-2 opacity-90 relative z-10">
@@ -79,10 +86,10 @@
 
     <!-- Action Buttons -->
     <div class="space-y-3 pt-2">
-      <!-- Shirt Order — always visible, prominent -->
-      <router-link to="/shirt-order" class="block w-full rounded-2xl bg-gradient-to-r from-brand-secondary to-brand-secondary-strong px-6 py-5 text-center font-bold text-white shadow-lg transition hover:brightness-110 focus:ring-4 focus:ring-focus-ring active:scale-95">
-        <div class="text-lg">สั่งเสื้อรุ่น SKN50 ม. 1/2</div>
-        <div class="text-xs font-normal opacity-90 mt-1">คลิกที่นี่เพื่อสั่งซื้อ</div>
+      <!-- Venue vote for the parents' gathering -->
+      <router-link to="/venue-vote" class="block w-full rounded-2xl border-2 border-brand-primary bg-surface px-6 py-4 text-center font-bold text-brand-primary-strong shadow-sm transition hover:bg-brand-primary-soft focus:ring-4 focus:ring-focus-ring active:scale-95">
+        <div class="text-lg">โหวตสถานที่จัดกิจกรรม</div>
+        <div class="text-xs font-normal opacity-90 mt-1">คลิกที่นี่เพื่อโหวต</div>
       </router-link>
 
       <!-- Register / Edit Profile -->
@@ -168,6 +175,13 @@ async function loadData() {
 
     if (data.student?.photoUrl) {
       try {
+        // Revoke previous blob URL before allocating a new one.
+        // Reassigning without revoke leaks the underlying Blob, which
+        // accumulates across reloads and OOMs the Android WebView.
+        if (photoUrl.value) {
+          URL.revokeObjectURL(photoUrl.value);
+          photoUrl.value = null;
+        }
         photoUrl.value = await fetchProtectedPhotoUrl(token, data.student.photoUrl);
       } catch (err) {
         if (err instanceof UnauthorizedError) {

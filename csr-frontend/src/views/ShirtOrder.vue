@@ -192,10 +192,27 @@
             <!-- QR Code -->
             <div class="mt-4 text-center">
               <p class="mb-2 text-sm font-bold text-text-primary">📱 สแกน QR โอนเงิน</p>
-              <a href="/images/qr-payment.jpg" download="qr-payment.jpg">
-                <img src="/images/qr-payment.jpg" alt="QR โอนเงิน" class="w-full h-auto object-contain rounded-lg" loading="lazy" />
-              </a>
-              <p class="mt-1 text-xs text-gray-500">แตะค้างที่รูปเพื่อบันทึก / คลิกเพื่อดาวน์โหลด</p>
+              <p class="mb-3 text-xs text-text-secondary">แตะที่รูปเพื่อบันทึก</p>
+              <div
+                class="qr-frame relative overflow-hidden rounded-lg select-none"
+                @click="downloadQr"
+                @touchstart.stop
+                @touchend.stop
+                @contextmenu.stop.prevent
+                @dragstart.stop.prevent
+              >
+                <!-- pointer-events:none + draggable=false + the .qr-frame
+                     touch handlers block Android LINE WebView's native
+                     long-press image menu (which freezes the page when
+                     dismissed). Touch falls through to .qr-frame → downloadQr. -->
+                <img
+                  src="/images/qr-payment.jpg"
+                  alt="QR โอนเงิน"
+                  class="qr-img w-full h-auto object-contain"
+                  loading="lazy"
+                  draggable="false"
+                />
+              </div>
             </div>
           </div>
 
@@ -206,21 +223,39 @@
             </label>
             <p class="mb-3 text-xs text-text-secondary">รองรับ JPG, PNG (สูงสุด 5MB)</p>
 
-            <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-gray-50 px-4 py-6 transition hover:border-brand-primary hover:bg-brand-primary-soft/30">
-              <input type="file" accept="image/jpeg,image/png" class="hidden" @change="onSlipChange" />
+            <!--
+              No persistent <input type="file"> in the DOM. On Android LINE
+              in-app browser, cancelling the file chooser leaves the WebView's
+              file-callback un-invoked, so the same <input> can never reopen
+              the picker again. openSlipPicker() builds a fresh <input> on
+              every tap (see script) to dodge that stuck state.
+            -->
+            <button
+              type="button"
+              class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-gray-50 px-4 py-6 transition hover:border-brand-primary hover:bg-brand-primary-soft/30"
+              @click="openSlipPicker"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span class="text-sm font-medium text-brand-primary">{{ slipFile ? 'เปลี่ยนสลิป' : 'อัปโหลดสลิป' }}</span>
-            </label>
+            </button>
 
             <p v-if="slipFile" class="mt-2 text-sm text-text-secondary">
               ไฟล์: <span class="font-medium text-text-primary">{{ slipFile.name }}</span>
-              <button type="button" class="ml-2 text-xs text-red-500 underline" @click="setSlipFile(null)">ลบ</button>
+              <button type="button" class="ml-2 text-xs text-red-500 underline" @click="removeSlip">ลบ</button>
             </p>
 
             <div v-if="slipPreviewUrl" class="mt-3 overflow-hidden rounded-xl border border-border">
-              <img :src="slipPreviewUrl" alt="Preview สลิป" class="w-full object-contain" />
+              <div
+                class="w-full h-64 bg-contain bg-no-repeat bg-center select-none"
+                :style="{ backgroundImage: `url('${slipPreviewUrl}')` }"
+                role="img"
+                aria-label="Preview สลิป"
+                @touchstart.stop.prevent="() => {}"
+                @contextmenu.stop.prevent
+                @dragstart.stop.prevent
+              ></div>
             </div>
 
             <p v-if="errors.slip" class="mt-2 text-sm text-red-500">{{ errors.slip }}</p>
@@ -258,6 +293,10 @@ import { UnauthorizedError } from '../services/apiClient';
 const shirtImageA = ref('/images/shirt-a.jpg');
 const shirtImageB = ref('/images/shirt-b.jpg');
 
+// The currently-live programmatic file <input>, if any. We never keep a
+// persistent file input in the template — see openSlipPicker().
+let slipInputEl = null;
+
 function onImageError(event) {
   const el = event.target;
   el.style.display = 'none';
@@ -266,6 +305,21 @@ function onImageError(event) {
     parent.innerHTML = el.alt;
     parent.classList.add('text-4xl');
   }
+}
+
+// Trigger a download of the QR image. The <img> is overlaid with a
+// transparent div that swallows long-press, so this click handler is the
+// only way the user can save the image — no native WebView image menu
+// can reach the <img> underneath.
+function downloadQr() {
+  const a = document.createElement('a');
+  a.href = '/images/qr-payment.jpg';
+  a.download = 'qr-payment.jpg';
+  a.rel = 'noopener noreferrer';
+  // Append → click → remove is required by Firefox; harmless in WebKit.
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 const {
@@ -332,15 +386,52 @@ function enforceNumberRange(event) {
   else if (value > 40) form.studentNumber = '40';
 }
 
-function onSlipChange(event) {
-  const [file] = event.target.files || [];
-  if (file && file.size > 5 * 1024 * 1024) {
-    alert('ไฟล์ใหญ่เกิน 5MB');
-    event.target.value = '';
-    return;
+// Remove any leftover programmatic <input>. A cancelled chooser never
+// fires `change`, so its <input> would otherwise linger in the DOM.
+function discardSlipInput() {
+  if (slipInputEl) {
+    slipInputEl.remove();
+    slipInputEl = null;
   }
-  setSlipFile(file ?? null);
-  event.target.value = '';
+}
+
+// Build a brand-new <input type="file"> on every tap and click it within
+// the user gesture. Reusing one input breaks on Android LINE in-app
+// browser: after the chooser is cancelled the WebView holds an un-invoked
+// file callback and ignores every later open on the same element. A fresh
+// element each time sidesteps that stuck state.
+function openSlipPicker() {
+  discardSlipInput();
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png';
+  // Must be in the DOM for some Android WebViews to open the chooser.
+  // Kept off-screen rather than display:none (which can suppress it).
+  input.style.position = 'fixed';
+  input.style.left = '-9999px';
+  input.addEventListener(
+    'change',
+    () => {
+      const [file] = input.files || [];
+      if (file && file.size > 5 * 1024 * 1024) {
+        alert('ไฟล์ใหญ่เกิน 5MB');
+      } else {
+        setSlipFile(file ?? null);
+      }
+      discardSlipInput();
+    },
+    { once: true }
+  );
+
+  slipInputEl = input;
+  document.body.appendChild(input);
+  input.click();
+}
+
+function removeSlip() {
+  setSlipFile(null);
+  discardSlipInput();
 }
 
 async function submitOrder() {
@@ -399,5 +490,23 @@ onBeforeUnmount(() => {
   if (slipPreviewUrl.value) {
     URL.revokeObjectURL(slipPreviewUrl.value);
   }
+  discardSlipInput();
 });
 </script>
+
+<style scoped>
+.qr-frame {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+}
+.qr-img {
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+</style>

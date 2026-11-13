@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '../components/MainLayout.vue'
 import BackofficeLayout from '../components/BackofficeLayout.vue'
+import { redirectTargetFromQuery, rememberRedirectTarget } from '../utils/postLoginRedirect'
 
 const routes = [
   {
@@ -46,6 +47,18 @@ const routes = [
     meta: {
       frontofficeHeader: {
         title: 'สั่งซื้อเสื้อ POLO ม.1/2',
+        showBack: true,
+        showHome: true
+      }
+    }
+  },
+  {
+    path: '/venue-vote',
+    name: 'VenueVote',
+    component: () => import('../views/VenueVote.vue'),
+    meta: {
+      frontofficeHeader: {
+        title: 'โหวตสถานที่จัดกิจกรรม',
         showBack: true,
         showHome: true
       }
@@ -102,6 +115,11 @@ const routes = [
         path: 'registered-users',
         name: 'BackofficeRegisteredUsers',
         component: () => import('../views/backoffice/RegisteredUsersView.vue')
+      },
+      {
+        path: 'venue-vote',
+        name: 'BackofficeVenueVote',
+        component: () => import('../views/backoffice/VenueVoteSummaryView.vue')
       }
     ]
   }
@@ -110,4 +128,19 @@ const routes = [
 export const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Deep links: a LIFF link such as https://liff.line.me/<id>?redirect=/venue-vote
+// arrives with the target in `redirect` or `liff.state`. If we already hold a
+// token, go straight there; otherwise remember it so /liff-entry.html can
+// return to it after login.
+router.beforeEach((to) => {
+  const target = redirectTargetFromQuery(to.query)
+  if (!target || target === to.fullPath) return
+
+  const hasToken = import.meta.env.VITE_USE_MOCK_LIFF === 'true' || !!window.localStorage.getItem('liff_access_token')
+  const isLoginCallback = !!(to.query.code && to.query.state)
+  if (hasToken && !isLoginCallback) return target
+
+  rememberRedirectTarget(target)
 })

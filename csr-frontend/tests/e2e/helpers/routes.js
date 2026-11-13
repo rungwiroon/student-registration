@@ -11,4 +11,5 @@ export const routes = {
   editProfile: '/profile/edit',
   document: '/document',
   shirtOrder: '/shirt-order',
+  venueVote: '/venue-vote',
 };

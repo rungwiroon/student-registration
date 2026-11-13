@@ -1,3 +1,5 @@
+import { entryUrlForCurrentPage } from '../utils/postLoginRedirect';
+
 export class UnauthorizedError extends Error {
   constructor() {
     super('Session expired. Redirecting to login...');
@@ -7,7 +9,7 @@ export class UnauthorizedError extends Error {
 
 function redirectToLogin() {
   try { localStorage.clear(); } catch {}
-  window.location.replace('/liff-entry.html');
+  window.location.replace(entryUrlForCurrentPage());
   throw new UnauthorizedError();
 }
 

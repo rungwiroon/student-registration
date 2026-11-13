@@ -96,6 +96,33 @@ public static class BackofficeEndpoints
             );
         });
 
+        // GET /api/backoffice/venue-vote/summary — aggregate tally only, so both staff roles may see it
+        group.MapGet("/venue-vote/summary", async (
+            IStudentRepository repo,
+            IVenueVoteRepository votes,
+            Microsoft.Extensions.Options.IOptions<VenueVoteOptions> options) =>
+        {
+            var tally = await VenueVoteEndpoints.GetTallyAsync(votes);
+            if (tally.IsLeft)
+                return tally.Match(Right: _ => Results.Ok(), Left: err => Results.StatusCode(err.StatusCode));
+
+            var students = await repo.GetStudentsAsync();
+            if (students.IsLeft)
+                return students.Match(Right: _ => Results.Ok(), Left: err => Results.StatusCode(err.StatusCode));
+
+            var counts = tally.Match(Right: t => t, Left: _ => Array.Empty<VenueVoteCount>());
+            return Results.Ok(new
+            {
+                Venues = VenueCatalog.All,
+                Counts = counts,
+                TotalVotes = counts.Sum(c => c.Count),
+                TotalPeople = counts.Sum(c => c.People),
+                TotalFamilies = students.Match(Right: s => s.Count(), Left: _ => 0),
+                options.Value.ClosesAtUtc,
+                IsClosed = options.Value.IsClosed(DateTimeOffset.UtcNow)
+            });
+        });
+
         group.MapGet("/students", async (HttpContext ctx, IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
         {
             var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
