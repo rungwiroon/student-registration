@@ -25,7 +25,7 @@ public interface IStudentRepository
     Task<Either<AppError, IEnumerable<Student>>> GetStudentsAsync();
     Task<Either<AppError, IEnumerable<Guardian>>> GetGuardiansWithLineUserIdAsync();
     Task<Either<AppError, Unit>> UpdateGuardianDisplayNameAsync(string lineUserId, string displayName);
-    Task<Either<AppError, Unit>> LinkGuardianLineAsync(Guid guardianId, string lineUserId, string? displayName);
+    Task<Either<AppError, Unit>> LinkGuardianLineAsync(Guid guardianId, string lineUserId, string? displayName, string? relationType);
     Task InitializeDatabaseAsync();
 }
 
@@ -561,15 +561,17 @@ public class StudentRepository : IStudentRepository
     /// Attach a LINE account to a guardian row that has none yet. The WHERE clause makes it atomic:
     /// a row someone else just linked (or already linked) is never overwritten.
     /// </summary>
-    public async Task<Either<AppError, Unit>> LinkGuardianLineAsync(Guid guardianId, string lineUserId, string? displayName)
+    public async Task<Either<AppError, Unit>> LinkGuardianLineAsync(Guid guardianId, string lineUserId, string? displayName, string? relationType)
     {
         try
         {
             using var connection = GetConnection();
             var affected = await connection.ExecuteAsync(
-                @"UPDATE Guardians SET LineUserId = @LineUserId, LineDisplayName = @DisplayName
+                // RelationType: keep what the other parent already entered for this row, fill it only when blank.
+                @"UPDATE Guardians SET LineUserId = @LineUserId, LineDisplayName = @DisplayName,
+                      RelationType = COALESCE(NULLIF(RelationType, ''), @RelationType)
                   WHERE Id = @Id AND (LineUserId IS NULL OR LineUserId = '');",
-                new { Id = guardianId.ToString(), LineUserId = lineUserId, DisplayName = displayName });
+                new { Id = guardianId.ToString(), LineUserId = lineUserId, DisplayName = displayName, RelationType = relationType });
 
             if (affected == 0)
                 return new AppError("ผู้ปกครองคนนี้ผูก LINE แล้ว", 409);

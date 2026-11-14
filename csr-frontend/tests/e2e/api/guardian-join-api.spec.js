@@ -43,8 +43,8 @@ async function register(request, family, headers = family.father, payload = fami
   expect(response.status(), await response.text()).toBe(200);
 }
 
-const join = (request, headers, studentId, phone) =>
-  request.post('/api/register/join', { headers, data: { studentId, phone } });
+const join = (request, headers, studentId, phone, relationType = 'Mother') =>
+  request.post('/api/register/join', { headers, data: { studentId, phone, relationType } });
 
 test.describe('Guardian join', () => {
   test('requires auth', async ({ request }) => {
@@ -76,6 +76,30 @@ test.describe('Guardian join', () => {
     expect(fatherView.isRegistered).toBe(true);
     expect(fatherView.myVenueId).toBe('blu-o');
     expect(fatherView.myAttendeeCount).toBe(3);
+  });
+
+  test('requires choosing father, mother or other', async ({ request }) => {
+    const family = newFamily();
+    await register(request, family);
+    for (const bad of [null, '', 'Uncle']) {
+      const response = await join(request, family.mother, family.studentCode, family.studentPhone, bad);
+      expect(response.status()).toBe(400);
+    }
+    expect((await (await request.get('/api/venue-vote', { headers: family.mother })).json()).isRegistered).toBe(false);
+  });
+
+  test('the chosen relation fills a new row but never overwrites what the other parent entered', async ({ request }) => {
+    const blank = newFamily({ withSecondGuardian: false });
+    await register(request, blank);
+    expect((await join(request, blank.mother, blank.studentCode, blank.studentPhone, 'Mother')).status()).toBe(200);
+    const created = (await (await request.get('/api/me', { headers: blank.father })).json()).guardians.find((g) => g.order === 2);
+    expect(created.relationType).toBe('Mother');
+
+    const filled = newFamily(); // father already entered the second guardian as Mother
+    await register(request, filled);
+    expect((await join(request, filled.mother, filled.studentCode, filled.studentPhone, 'Father')).status()).toBe(200);
+    const kept = (await (await request.get('/api/me', { headers: filled.father })).json()).guardians.find((g) => g.order === 2);
+    expect(kept.relationType).toBe('Mother');
   });
 
   test('accepts the phone typed with spaces and dashes', async ({ request }) => {

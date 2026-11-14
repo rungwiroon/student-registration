@@ -55,6 +55,11 @@ public sealed class RegistrationService : IRegistrationService
             return AppError.BadRequest("กรุณากรอกรหัสนักเรียนและเบอร์โทรนักเรียน");
         }
 
+        if (request.RelationType is not ("Father" or "Mother" or "Other"))
+        {
+            return AppError.BadRequest("กรุณาเลือกว่าคุณเป็นบิดา มารดา หรือผู้ปกครองอื่นๆ");
+        }
+
         var existingResult = await _repo.GetGuardianByLineIdAsync(lineUserId);
         var existingError = GetError(existingResult);
         if (existingError is null)
@@ -123,7 +128,7 @@ public sealed class RegistrationService : IRegistrationService
             target = created;
         }
 
-        var linkResult = await _repo.LinkGuardianLineAsync(target.Id, lineUserId, displayName);
+        var linkResult = await _repo.LinkGuardianLineAsync(target.Id, lineUserId, displayName, request.RelationType);
         var linkError = GetError(linkResult);
         if (linkError is not null)
         {

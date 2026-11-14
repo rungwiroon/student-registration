@@ -38,6 +38,20 @@
           <p class="mt-1 text-xs text-text-secondary">เบอร์เดียวกับที่กรอกในช่อง "เบอร์โทรนักเรียน" ตอนลงทะเบียน</p>
         </div>
 
+        <div>
+          <label for="join-relation" class="block text-sm font-bold text-text-primary">คุณเป็น</label>
+          <select
+            id="join-relation"
+            v-model="relationType"
+            class="mt-1 block w-full rounded-md border border-border p-2 shadow-sm focus:outline-none focus:ring-4"
+          >
+            <option value="" disabled>-- เลือก --</option>
+            <option value="Father">บิดา</option>
+            <option value="Mother">มารดา</option>
+            <option value="Other">ผู้ปกครองอื่นๆ</option>
+          </select>
+        </div>
+
         <p v-if="errorMessage" role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {{ errorMessage }}
         </p>
@@ -72,11 +86,12 @@ const { getAccessToken, login } = useLiff();
 
 const studentId = ref('');
 const phone = ref('');
+const relationType = ref('');
 const isSubmitting = ref(false);
 const errorMessage = ref('');
 
 const canSubmit = computed(() =>
-  !isSubmitting.value && studentId.value.trim() !== '' && phone.value.replace(/\D/g, '').length >= 9
+  !isSubmitting.value && studentId.value.trim() !== '' && phone.value.replace(/\D/g, '').length >= 9 && relationType.value !== ''
 );
 
 async function submit() {
@@ -91,7 +106,7 @@ async function submit() {
   isSubmitting.value = true;
   errorMessage.value = '';
   try {
-    await joinAsGuardian(token, studentId.value.trim(), phone.value);
+    await joinAsGuardian(token, studentId.value.trim(), phone.value, relationType.value);
     alert('เข้าร่วมสำเร็จ ตอนนี้ใช้งานในฐานะผู้ปกครองของนักเรียนคนนี้ได้แล้ว');
     router.push('/');
   } catch (error) {

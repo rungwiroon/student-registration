@@ -71,13 +71,13 @@ export async function submitRegistration(token, form, files) {
   return response.json();
 }
 
-export async function joinAsGuardian(token, studentId, phone) {
+export async function joinAsGuardian(token, studentId, phone, relationType) {
   const lineDisplayName = typeof window !== 'undefined'
     ? (window.localStorage.getItem('liff_display_name') || '')
     : '';
   return apiJson('/api/register/join', token, {
     method: 'POST',
-    body: JSON.stringify({ studentId, phone, lineDisplayName }),
+    body: JSON.stringify({ studentId, phone, relationType, lineDisplayName }),
     headers: { 'Content-Type': 'application/json' }
   });
 }
