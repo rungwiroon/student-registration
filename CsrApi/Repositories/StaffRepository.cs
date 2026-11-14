@@ -18,6 +18,7 @@ public interface IStaffRepository
     Task<Either<AppError, List<StaffUser>>> GetAllStaffAsync();
     Task<Either<AppError, Unit>> UpsertStaffUserAsync(StaffUser staff);
     Task<Either<AppError, Unit>> DeleteStaffAsync(string id);
+    Task<Either<AppError, Unit>> UpdateLineUserIdAsync(string id, string newLineUserId);
     Task InitializeDatabaseAsync();
 }
 
@@ -158,6 +159,34 @@ public class StaffRepository : IStaffRepository
                 return Unit.Default;
 
             return AppError.Internal("Failed to upsert staff user.");
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Re-points a staff row at a different LINE account. Not an upsert: the upsert keys on
+    /// LineUserId, so it can never change it. LineUserId is UNIQUE across inactive rows too.
+    /// </summary>
+    public async Task<Either<AppError, Unit>> UpdateLineUserIdAsync(string id, string newLineUserId)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            var affected = await connection.ExecuteAsync(
+                "UPDATE StaffUsers SET LineUserId = @LineUserId WHERE Id = @Id",
+                new { LineUserId = newLineUserId, Id = id });
+
+            if (affected > 0)
+                return Unit.Default;
+
+            return AppError.NotFound($"StaffUser with Id {id} not found.");
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            return new AppError("LINE ID นี้ถูกใช้งานโดยเจ้าหน้าที่คนอื่นแล้ว", 409);
         }
         catch (Exception ex)
         {

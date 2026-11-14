@@ -61,10 +61,10 @@ export async function createStaff({ lineUserId, name, role, phone, position, isV
   });
 }
 
-export async function updateStaff(id, { role, name, phone, position, isVisibleInDirectory }, token) {
+export async function updateStaff(id, { lineUserId, role, name, phone, position, isVisibleInDirectory }, token) {
   return apiJson(`/api/backoffice/staff/${id}`, token, {
     method: 'PUT',
-    body: JSON.stringify({ role, name, phone, position, isVisibleInDirectory }),
+    body: JSON.stringify({ lineUserId, role, name, phone, position, isVisibleInDirectory }),
     headers: { 'Content-Type': 'application/json' }
   });
 }
