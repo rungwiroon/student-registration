@@ -15,7 +15,8 @@ public interface IVenueVoteRepository
     Task<Either<AppError, Option<VenueVoteRecord>>> GetVoteByStudentAsync(Guid studentId);
     Task<Either<AppError, Unit>> UpsertAsync(Guid studentId, string venueId, int attendeeCount, string lineUserId);
     /// <summary>Per venue: (families, total attendees). Venues with no votes are absent.</summary>
-    Task<Either<AppError, Dictionary<string, (int Count, int People)>>> GetCountsAsync();
+    /// <param name="excludedStudentCodes">Test students whose votes must not be counted.</param>
+    Task<Either<AppError, Dictionary<string, (int Count, int People)>>> GetCountsAsync(IReadOnlyCollection<string> excludedStudentCodes);
     Task InitializeDatabaseAsync();
 }
 
@@ -96,15 +97,21 @@ public class VenueVoteRepository : IVenueVoteRepository
         }
     }
 
-    public async Task<Either<AppError, Dictionary<string, (int Count, int People)>>> GetCountsAsync()
+    public async Task<Either<AppError, Dictionary<string, (int Count, int People)>>> GetCountsAsync(IReadOnlyCollection<string> excludedStudentCodes)
     {
         try
         {
             using var connection = GetConnection();
             // SUM ignores NULLs, so pre-existing votes count as a family but add no people.
+            // Vote keys are lowercase Guid text; Students.Id may be stored upper-case, hence LOWER().
+            // A vote whose student row is missing is still counted (LEFT JOIN, NULL is not "excluded").
             var rows = await connection.QueryAsync<(string VenueId, long Count, long People)>(
-                @"SELECT VenueId, COUNT(*) AS Count, COALESCE(SUM(AttendeeCount), 0) AS People
-                  FROM VenueVotes GROUP BY VenueId");
+                @"SELECT v.VenueId, COUNT(*) AS Count, COALESCE(SUM(v.AttendeeCount), 0) AS People
+                  FROM VenueVotes v
+                  LEFT JOIN Students s ON LOWER(s.Id) = v.StudentId
+                  WHERE s.StudentId IS NULL OR s.StudentId NOT IN @Excluded
+                  GROUP BY v.VenueId",
+                new { Excluded = excludedStudentCodes.Count == 0 ? new[] { "" } : excludedStudentCodes });
 
             return rows.ToDictionary(r => r.VenueId, r => ((int)r.Count, (int)r.People));
         }

@@ -102,7 +102,7 @@ public static class BackofficeEndpoints
             IVenueVoteRepository votes,
             Microsoft.Extensions.Options.IOptions<VenueVoteOptions> options) =>
         {
-            var tally = await VenueVoteEndpoints.GetTallyAsync(votes);
+            var tally = await VenueVoteEndpoints.GetTallyAsync(votes, options.Value);
             if (tally.IsLeft)
                 return tally.Match(Right: _ => Results.Ok(), Left: err => Results.StatusCode(err.StatusCode));
 
@@ -117,7 +117,9 @@ public static class BackofficeEndpoints
                 Counts = counts,
                 TotalVotes = counts.Sum(c => c.Count),
                 TotalPeople = counts.Sum(c => c.People),
-                TotalFamilies = students.Match(Right: s => s.Count(), Left: _ => 0),
+                TotalFamilies = students.Match(
+                    Right: s => s.Count(x => !options.Value.ExcludedCodes().Contains(x.StudentId ?? "")),
+                    Left: _ => 0),
                 options.Value.ClosesAtUtc,
                 IsClosed = options.Value.IsClosed(DateTimeOffset.UtcNow)
             });

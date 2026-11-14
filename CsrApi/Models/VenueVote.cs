@@ -37,6 +37,17 @@ public sealed class VenueVoteOptions
     public DateTimeOffset? ClosesAtUtc { get; set; }
 
     public bool IsClosed(DateTimeOffset now) => ClosesAtUtc is { } closesAt && now >= closesAt;
+
+    /// <summary>
+    /// Comma-separated student codes (รหัสประจำตัว) of test records. Their votes are kept
+    /// but left out of every tally and out of the "families" denominator.
+    /// </summary>
+    public string ExcludedStudentCodes { get; set; } = string.Empty;
+
+    public IReadOnlyList<string> ExcludedCodes() =>
+        ExcludedStudentCodes
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
 }
 
 /// <summary>A family's stored vote. AttendeeCount is null for votes cast before the field existed.</summary>
