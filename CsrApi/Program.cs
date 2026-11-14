@@ -91,6 +91,7 @@ builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.Configure<VenueVoteOptions>(builder.Configuration.GetSection("VenueVote"));
 builder.Services.AddScoped<IVenueVoteRepository, VenueVoteRepository>();
 builder.Services.AddScoped<IDevelopmentDataSeeder, DevelopmentDataSeeder>();
+builder.Services.AddSingleton<IJoinAttemptLimiter, JoinAttemptLimiter>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IBackofficeStudentExportService, BackofficeStudentExportService>();
 
@@ -265,6 +266,23 @@ app.MapPost("/api/register", async (HttpContext context, IRegistrationService re
     return result.Match(
         Right: studentId => Results.Ok(new { Message = "Registration successful", StudentId = studentId }),
         Left: ToErrorResult);
+});
+
+app.MapPost("/api/register/join", async (HttpContext context, JoinGuardianRequest request, IRegistrationService requestServices) =>
+{
+    var lineUserId = GetLineUserId(context);
+    if (lineUserId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await requestServices.JoinAsGuardianAsync(request, lineUserId);
+    return result.Match(
+        Right: studentId => Results.Ok(new { Message = "Joined", StudentId = studentId }),
+        // Plain text so the page can show the message as-is (Results.NotFound(string) would JSON-quote it).
+        Left: error => error.StatusCode >= StatusCodes.Status500InternalServerError
+            ? Results.StatusCode(error.StatusCode)
+            : Results.Text(error.Message, "text/plain; charset=utf-8", statusCode: error.StatusCode));
 });
 
 app.MapGet("/api/me", async (HttpContext context, IRegistrationService requestServices) =>
@@ -468,6 +486,8 @@ static IResult ToErrorResult(AppError error)
         StatusCodes.Status400BadRequest => Results.BadRequest(error.Message),
         StatusCodes.Status401Unauthorized => Results.Unauthorized(),
         StatusCodes.Status404NotFound => Results.NotFound(error.Message),
+        StatusCodes.Status409Conflict or StatusCodes.Status429TooManyRequests =>
+            Results.Text(error.Message, "text/plain; charset=utf-8", statusCode: error.StatusCode),
         _ => Results.StatusCode(error.StatusCode)
     };
 }

@@ -35,3 +35,6 @@ public class GuardianInfo
     public string? Email { get; set; }
     public string? LineDisplayName { get; set; }
 }
+
+/// <summary>A second parent linking their own LINE account to an already-registered student.</summary>
+public sealed record JoinGuardianRequest(string? StudentId, string? Phone, string? RelationType, string? LineDisplayName);

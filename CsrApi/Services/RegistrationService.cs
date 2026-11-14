@@ -13,6 +13,7 @@ namespace CsrApi.Services;
 public interface IRegistrationService
 {
     Task<Either<AppError, Guid>> UpsertRegistrationAsync(RegistrationRequest request, string lineUserId, IFormFile? studentPhoto, List<IFormFile>? guardianPhotos, CancellationToken cancellationToken);
+    Task<Either<AppError, Guid>> JoinAsGuardianAsync(JoinGuardianRequest request, string lineUserId);
     Task<Either<AppError, ProfileResponse>> GetMyProfileAsync(string lineUserId, CancellationToken cancellationToken);
     Task<Either<AppError, IntroductionDocumentResponse>> GetIntroductionDocumentAsync(string lineUserId, CancellationToken cancellationToken);
     Task<Either<AppError, PhotoReadResult>> GetStudentPhotoAsync(string lineUserId, CancellationToken cancellationToken);
@@ -24,13 +25,131 @@ public sealed class RegistrationService : IRegistrationService
     private readonly IStudentRepository _repo;
     private readonly IEncryptionService _encryption;
     private readonly IPhotoStorageService _photoStorage;
+    private readonly IJoinAttemptLimiter _joinLimiter;
 
-    public RegistrationService(IStudentRepository repo, IEncryptionService encryption, IPhotoStorageService photoStorage)
+    public RegistrationService(IStudentRepository repo, IEncryptionService encryption, IPhotoStorageService photoStorage, IJoinAttemptLimiter joinLimiter)
     {
         _repo = repo;
         _encryption = encryption;
         _photoStorage = photoStorage;
+        _joinLimiter = joinLimiter;
     }
+
+    private const string JoinNotFoundMessage = "ไม่พบข้อมูลที่ตรงกัน ตรวจรหัสนักเรียนและเบอร์โทร";
+
+    /// <summary>
+    /// Lets a second parent (who has their own LINE account) join a student that is already registered,
+    /// proving they know the student's code and phone. Links the LINE account to a secondary guardian row.
+    /// </summary>
+    public async Task<Either<AppError, Guid>> JoinAsGuardianAsync(JoinGuardianRequest request, string lineUserId)
+    {
+        if (_joinLimiter.IsBlocked(lineUserId))
+        {
+            return new AppError("ลองผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่", StatusCodes.Status429TooManyRequests);
+        }
+
+        var studentCode = request.StudentId?.Trim();
+        var phone = DigitsOnly(request.Phone);
+        if (string.IsNullOrEmpty(studentCode) || phone.Length < 9)
+        {
+            return AppError.BadRequest("กรุณากรอกรหัสนักเรียนและเบอร์โทรนักเรียน");
+        }
+
+        if (request.RelationType is not ("Father" or "Mother" or "Other"))
+        {
+            return AppError.BadRequest("กรุณาเลือกว่าคุณเป็นบิดา มารดา หรือผู้ปกครองอื่นๆ");
+        }
+
+        var existingResult = await _repo.GetGuardianByLineIdAsync(lineUserId);
+        var existingError = GetError(existingResult);
+        if (existingError is null)
+        {
+            return new AppError("บัญชี LINE นี้ลงทะเบียนแล้ว", StatusCodes.Status409Conflict);
+        }
+
+        if (existingError.StatusCode != StatusCodes.Status404NotFound)
+        {
+            return existingError;
+        }
+
+        var studentResult = await _repo.GetStudentByStudentIdAsync(studentCode);
+        var student = studentResult.MatchUnsafe(s => s, _ => (Student?)null);
+        if (student is null)
+        {
+            _joinLimiter.RecordFailure(lineUserId);
+            return AppError.NotFound(JoinNotFoundMessage);
+        }
+
+        var guardiansResult = await _repo.GetGuardiansByStudentIdAsync(student.Id);
+        var guardiansError = GetError(guardiansResult);
+        if (guardiansError is not null)
+        {
+            return guardiansError;
+        }
+
+        var guardians = guardiansResult.Match(g => g.ToList(), _ => new List<Guardian>());
+        var unlinkedSecondary = guardians
+            .Where(g => g.GuardianOrder >= 2 && string.IsNullOrEmpty(g.LineUserId))
+            .OrderBy(g => g.GuardianOrder)
+            .ToList();
+
+        var matchesStudentPhone = PhoneMatches(student.EncryptedPhone, phone);
+        var matchesGuardianPhone = unlinkedSecondary.Any(g => PhoneMatches(g.EncryptedPhone, phone));
+        if (!matchesStudentPhone && !matchesGuardianPhone)
+        {
+            _joinLimiter.RecordFailure(lineUserId);
+            return AppError.NotFound(JoinNotFoundMessage);
+        }
+
+        var displayName = string.IsNullOrWhiteSpace(request.LineDisplayName) ? null : request.LineDisplayName.Trim();
+        var target = unlinkedSecondary.FirstOrDefault();
+        if (target is null)
+        {
+            if (guardians.Any(g => g.GuardianOrder >= 2))
+            {
+                // Every secondary guardian already has a LINE account: nothing left to join.
+                return new AppError("ครอบครัวนี้มีผู้ปกครองผูก LINE ครบแล้ว กรุณาติดต่อครูผู้ดูแล", StatusCodes.Status409Conflict);
+            }
+
+            var created = new Guardian
+            {
+                Id = Guid.NewGuid(),
+                StudentId = student.Id,
+                GuardianOrder = 2,
+                EncryptedPhone = string.Empty
+            };
+            var createResult = await _repo.UpsertGuardianAsync(created);
+            var createError = GetError(createResult);
+            if (createError is not null)
+            {
+                return createError;
+            }
+
+            target = created;
+        }
+
+        var linkResult = await _repo.LinkGuardianLineAsync(target.Id, lineUserId, displayName, request.RelationType);
+        var linkError = GetError(linkResult);
+        if (linkError is not null)
+        {
+            return linkError;
+        }
+
+        return student.Id;
+    }
+
+    private bool PhoneMatches(string? encryptedPhone, string digits)
+    {
+        if (string.IsNullOrEmpty(encryptedPhone))
+        {
+            return false;
+        }
+
+        return DigitsOnly(_encryption.Decrypt(encryptedPhone)) == digits;
+    }
+
+    private static string DigitsOnly(string? value) =>
+        new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
 
     public async Task<Either<AppError, Guid>> UpsertRegistrationAsync(RegistrationRequest request, string lineUserId, IFormFile? studentPhoto, List<IFormFile>? guardianPhotos, CancellationToken cancellationToken)
     {
@@ -110,10 +229,14 @@ public sealed class RegistrationService : IRegistrationService
             var guardianInfo = request.Guardians[i];
             var guardianOrder = guardianInfo.Order > 0 ? guardianInfo.Order : i + 1;
             
-            // Find existing guardian by order or use the one with matching LineUserId
-            var existing = guardianOrder == 1 && existingGuardian is not null
-                ? existingGuardian
-                : existingGuardians.FirstOrDefault(g => g.GuardianOrder == guardianOrder);
+            // Match the stored row by order. The caller may be the secondary guardian, so their own row
+            // (existingGuardian) is not necessarily order 1.
+            var existing = existingGuardians.FirstOrDefault(g => g.GuardianOrder == guardianOrder);
+
+            // Only the caller's own row gets the caller's LINE account; other rows keep theirs.
+            var isCallerRow = existingGuardian is null
+                ? guardianOrder == 1
+                : existing?.Id == existingGuardian.Id;
 
             StoredPhoto? storedGuardianPhoto = null;
             if (guardianPhotos is not null && i < guardianPhotos.Count && guardianPhotos[i] is not null)
@@ -129,7 +252,14 @@ public sealed class RegistrationService : IRegistrationService
                 storedGuardianPhoto = guardianPhotoResult.MatchUnsafe(photo => photo, _ => null!);
             }
 
-            guardiansToUpsert.Add(BuildGuardian(guardianInfo, guardianOrder, lineUserId, studentId, existing, storedGuardianPhoto));
+            guardiansToUpsert.Add(BuildGuardian(
+                guardianInfo,
+                guardianOrder,
+                isCallerRow ? lineUserId : existing?.LineUserId,
+                isCallerRow ? guardianInfo.LineDisplayName : existing?.LineDisplayName,
+                studentId,
+                existing,
+                storedGuardianPhoto));
         }
 
         var guardiansResult = await _repo.UpsertGuardiansAsync(guardiansToUpsert);
@@ -385,7 +515,7 @@ public sealed class RegistrationService : IRegistrationService
         };
     }
 
-    private Guardian BuildGuardian(GuardianInfo request, int guardianOrder, string lineUserId, Guid studentId, Guardian? existingGuardian, StoredPhoto? storedPhoto)
+    private Guardian BuildGuardian(GuardianInfo request, int guardianOrder, string? lineUserId, string? lineDisplayName, Guid studentId, Guardian? existingGuardian, StoredPhoto? storedPhoto)
     {
         var photo = storedPhoto ?? ToStoredPhoto(existingGuardian?.PhotoFileName, existingGuardian?.PhotoContentType, existingGuardian?.PhotoUploadedAtUtc);
         var fullName = $"{request.FirstName} {request.LastName}".Trim();
@@ -397,8 +527,8 @@ public sealed class RegistrationService : IRegistrationService
             GuardianOrder = guardianOrder,
             Occupation = request.Occupation,
             Email = request.Email,
-            LineUserId = guardianOrder == 1 ? lineUserId : existingGuardian?.LineUserId,
-            LineDisplayName = guardianOrder == 1 ? request.LineDisplayName : existingGuardian?.LineDisplayName,
+            LineUserId = lineUserId,
+            LineDisplayName = lineDisplayName,
             EncryptedName = _encryption.Encrypt(fullName),
             EncryptedFirstName = string.IsNullOrEmpty(request.FirstName) ? null : _encryption.Encrypt(request.FirstName),
             EncryptedLastName = string.IsNullOrEmpty(request.LastName) ? null : _encryption.Encrypt(request.LastName),
