@@ -12,6 +12,11 @@ namespace CsrApi;
 
 public static class BackofficeEndpoints
 {
+    private static readonly System.Text.RegularExpressions.Regex LineUserIdFormat =
+        new("^U[0-9a-f]{32}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private const string InvalidLineUserIdMessage = "LINE ID ไม่ถูกต้อง ต้องขึ้นต้นด้วย U ตามด้วยตัวอักษร a-f/ตัวเลข 32 ตัว";
+
     public static void MapBackofficeEndpoints(this WebApplication app)
     {
         // Dev-only: role switching without restart
@@ -421,7 +426,7 @@ public static class BackofficeEndpoints
         });
 
         // GET /api/backoffice/staff — list all staff users (Teacher-only)
-        group.MapGet("/staff", async (HttpContext ctx, IStaffRepository staffRepo, ILineProfileService lineProfile) =>
+        group.MapGet("/staff", async (HttpContext ctx, IStaffRepository staffRepo, IStudentRepository studentRepo, IEncryptionService encryption, ILineProfileService lineProfile) =>
         {
             var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
             if (!policy.CanManageStaff(ctx))
@@ -432,19 +437,41 @@ public static class BackofficeEndpoints
                 return result.Match(Right: _ => Results.Ok(), Left: err => Results.StatusCode(err.StatusCode));
 
             var staff = result.Match(Right: s => s, Left: _ => new List<StaffUser>());
-            var lineNames = await lineProfile.GetDisplayNamesAsync(staff.Select(s => s.LineUserId));
-            return Results.Ok(staff.Select(s => new
+
+            // A staff member who is also a registered guardian: show who they are (the LINE name stored at
+            // registration, same as /registered-users) instead of only the raw U… id.
+            var guardiansResult = await studentRepo.GetGuardiansWithLineUserIdAsync();
+            var guardianByLine = guardiansResult
+                .Match(Right: g => g.ToList(), Left: _ => new List<Guardian>())
+                .GroupBy(g => g.LineUserId!)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            // The LINE bot profile API only knows users who added the bot, so it is just a fallback.
+            var needsLookup = staff
+                .Where(s => !(guardianByLine.TryGetValue(s.LineUserId, out var g) && !string.IsNullOrWhiteSpace(g.LineDisplayName)))
+                .Select(s => s.LineUserId);
+            var lineNames = await lineProfile.GetDisplayNamesAsync(needsLookup);
+
+            return Results.Ok(staff.Select(s =>
             {
-                s.Id,
-                s.LineUserId,
-                s.Role,
-                s.Name,
-                s.Phone,
-                s.Position,
-                s.IsVisibleInDirectory,
-                LineDisplayName = lineNames.GetValueOrDefault(s.LineUserId),
-                s.IsActive,
-                CreatedAt = s.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                guardianByLine.TryGetValue(s.LineUserId, out var guardian);
+                var storedName = guardian?.LineDisplayName;
+                return new
+                {
+                    s.Id,
+                    s.LineUserId,
+                    s.Role,
+                    s.Name,
+                    s.Phone,
+                    s.Position,
+                    s.IsVisibleInDirectory,
+                    LineDisplayName = !string.IsNullOrWhiteSpace(storedName) ? storedName : lineNames.GetValueOrDefault(s.LineUserId),
+                    GuardianName = guardian is null || string.IsNullOrEmpty(guardian.EncryptedName) ? null : encryption.Decrypt(guardian.EncryptedName!),
+                    IsRegisteredGuardian = guardian is not null,
+                    IsSelf = s.LineUserId == ctx.Items["LineUserId"]?.ToString(),
+                    s.IsActive,
+                    CreatedAt = s.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                };
             }));
         });
 
@@ -461,10 +488,14 @@ public static class BackofficeEndpoints
             if (req.Role != "Teacher" && req.Role != "ParentNetworkStaff")
                 return Results.BadRequest(new { Error = "Role must be 'Teacher' or 'ParentNetworkStaff'." });
 
+            var newLineUserId = req.LineUserId.Trim();
+            if (!LineUserIdFormat.IsMatch(newLineUserId))
+                return Results.Text(InvalidLineUserIdMessage, "text/plain; charset=utf-8", statusCode: 400);
+
             var staff = new StaffUser
             {
                 Id = Guid.NewGuid().ToString(),
-                LineUserId = req.LineUserId,
+                LineUserId = newLineUserId,
                 Role = req.Role,
                 Name = req.Name,
                 Phone = req.Phone ?? string.Empty,
@@ -481,7 +512,7 @@ public static class BackofficeEndpoints
             );
         });
 
-        // PUT /api/backoffice/staff/{id} — update staff role/name (Teacher-only)
+        // PUT /api/backoffice/staff/{id} — update staff role/name/LINE id (Teacher-only)
         group.MapPut("/staff/{id}", async (HttpContext ctx, string id, UpdateStaffRequest req, IStaffRepository staffRepo) =>
         {
             var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
@@ -496,6 +527,43 @@ public static class BackofficeEndpoints
                 return Results.NotFound();
 
             var existing = existingResult.MatchUnsafe(s => s, _ => null!);
+
+            // Only a changed value is validated: seeded/mock ids are not in the U+32-hex format.
+            var requestedLineUserId = req.LineUserId?.Trim();
+            var changesLineUserId = !string.IsNullOrEmpty(requestedLineUserId) && requestedLineUserId != existing.LineUserId;
+            if (changesLineUserId)
+            {
+                if (!LineUserIdFormat.IsMatch(requestedLineUserId!))
+                    return Results.Text(InvalidLineUserIdMessage, "text/plain; charset=utf-8", statusCode: 400);
+
+                // Re-pointing your own row would lock you out of the backoffice.
+                var currentLineUserId = ctx.Items["LineUserId"]?.ToString();
+                if (existing.LineUserId == currentLineUserId)
+                    return Results.Text("เปลี่ยน LINE ของตัวเองไม่ได้ ให้เจ้าหน้าที่คนอื่นแก้ให้", "text/plain; charset=utf-8", statusCode: 400);
+
+                // LineUserId is UNIQUE across inactive rows too, so check all rows for a clear message.
+                var allStaff = await staffRepo.GetAllStaffAsync();
+                if (allStaff.IsLeft)
+                    return Results.StatusCode(500);
+
+                var owner = allStaff.Match(Right: s => s, Left: _ => new List<StaffUser>())
+                    .FirstOrDefault(s => s.LineUserId == requestedLineUserId);
+                if (owner is not null)
+                {
+                    var suffix = owner.IsActive ? "" : " (ปิดใช้งานอยู่)";
+                    return Results.Text($"LINE ID นี้ถูกใช้โดย {owner.Name}{suffix} แล้ว", "text/plain; charset=utf-8", statusCode: 409);
+                }
+
+                var relink = await staffRepo.UpdateLineUserIdAsync(id, requestedLineUserId!);
+                if (relink.IsLeft)
+                    return relink.Match(
+                        Right: _ => Results.Ok(),
+                        Left: err => err.StatusCode == 409
+                            ? Results.Text(err.Message, "text/plain; charset=utf-8", statusCode: 409)
+                            : Results.StatusCode(err.StatusCode));
+
+                existing.LineUserId = requestedLineUserId!;
+            }
 
             if (req.Role != null) existing.Role = req.Role;
             if (req.Name != null) existing.Name = req.Name;
@@ -588,6 +656,7 @@ public static class BackofficeEndpoints
 
     public class UpdateStaffRequest
     {
+        public string? LineUserId { get; set; }
         public string? Role { get; set; }
         public string? Name { get; set; }
         public string? Phone { get; set; }

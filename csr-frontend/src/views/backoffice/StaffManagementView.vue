@@ -15,9 +15,9 @@
       <div v-if="showAddForm" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4">เพิ่มเจ้าหน้าที่ใหม่</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">LINE User ID</label>
-            <input v-model="newStaff.lineUserId" type="text" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 outline-none text-sm" placeholder="Uxxxxxxxx..." />
+          <div class="md:col-span-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">LINE ของเจ้าหน้าที่</label>
+            <LineAccountPicker v-model="newStaff.lineUserId" :users="registeredUsers" @pick="u => { if (!newStaff.name) newStaff.name = u.name; if (!newStaff.phone) newStaff.phone = u.phone; }" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
@@ -62,8 +62,10 @@
             <div class="flex justify-between items-start mb-2">
               <div>
                 <p class="font-bold text-slate-800">{{ staff.name }}</p>
-                <p class="text-xs text-gray-500 mt-1 font-mono">{{ staff.lineUserId }}</p>
-                <p v-if="staff.lineDisplayName" class="text-xs text-slate-500 mt-0.5">LINE: {{ staff.lineDisplayName }}</p>
+                <p v-if="staff.lineDisplayName" class="text-xs text-slate-600 mt-1">LINE: {{ staff.lineDisplayName }}</p>
+                <p v-if="staff.guardianName" class="text-xs text-slate-500 mt-0.5">ผู้ปกครอง: {{ staff.guardianName }}</p>
+                <p v-if="!staff.isRegisteredGuardian" class="text-xs text-amber-600 mt-0.5">ไม่พบในผู้ปกครองที่ลงทะเบียน</p>
+                <p class="text-xs text-gray-400 mt-0.5 font-mono break-all">{{ staff.lineUserId }}</p>
                 <p v-if="staff.phone" class="text-xs text-slate-500 mt-0.5"><span class="font-medium">เบอร์:</span> {{ staff.phone }}</p>
                 <p v-if="staff.position" class="text-xs text-slate-500 mt-0.5"><span class="font-medium">ตำแหน่ง:</span> {{ staff.position }}</p>
                 <p class="text-xs mt-0.5" :class="staff.isVisibleInDirectory ? 'text-emerald-600' : 'text-gray-400'">{{ staff.isVisibleInDirectory ? '📂 แสดงในรายชื่อติดต่อ' : '🙈 ซ่อนในรายชื่อติดต่อ' }}</p>
@@ -88,6 +90,10 @@
             </div>
             <!-- Inline edit (mobile) -->
             <div v-if="editingId === staff.id" class="mt-3 space-y-2">
+              <div>
+                <label class="text-xs text-gray-500">LINE</label>
+                <LineAccountPicker v-model="editLineUserId" :users="registeredUsers" :disabled="staff.isSelf" />
+              </div>
               <div>
                 <label class="text-xs text-gray-500">ชื่อ</label>
                 <input v-model="editName" type="text" class="w-full px-2 py-1 border rounded text-sm" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
@@ -125,15 +131,20 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="staff in staffList" :key="staff.id" class="hover:bg-slate-50 transition" :class="{ 'opacity-50': !staff.isActive }">
+              <template v-for="staff in staffList" :key="staff.id">
+              <tr class="hover:bg-slate-50 transition" :class="{ 'opacity-50': !staff.isActive }">
                 <td class="px-6 py-4 font-bold text-slate-800">
                   <template v-if="editingId === staff.id">
                     <input v-model="editName" type="text" class="px-2 py-1 border rounded text-sm w-full" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
                   </template>
                   <template v-else>{{ staff.name }}</template>
                 </td>
-                <td class="px-6 py-4 text-xs text-gray-400 font-mono">{{ staff.lineUserId }}</td>
-                <td class="px-6 py-4 text-sm text-slate-600">{{ staff.lineDisplayName || '-' }}</td>
+                <td class="px-6 py-4 text-xs text-gray-400 font-mono break-all">{{ staff.lineUserId }}</td>
+                <td class="px-6 py-4 text-sm text-slate-600">
+                  <span v-if="staff.lineDisplayName">{{ staff.lineDisplayName }}</span>
+                  <span v-else class="text-amber-600 text-xs">ไม่พบในผู้ปกครองที่ลงทะเบียน</span>
+                  <span v-if="staff.guardianName" class="block text-xs text-slate-500">ผู้ปกครอง: {{ staff.guardianName }}</span>
+                </td>
                 <td class="px-6 py-4 text-xs font-mono">
                   <template v-if="editingId === staff.id">
                     <input v-model="editPhone" type="text" class="px-2 py-1 border rounded text-sm w-full font-mono" @keyup.enter="saveEdit(staff)" @keyup.escape="editingId = null" />
@@ -188,6 +199,16 @@
                   <span v-else class="text-gray-400 text-xs">—</span>
                 </td>
               </tr>
+              <tr v-if="editingId === staff.id" class="bg-slate-50">
+                <td colspan="9" class="px-6 py-4">
+                  <p class="text-sm font-medium text-gray-700 mb-2">แก้ไข LINE ของ {{ staff.name }}</p>
+                  <div class="max-w-xl">
+                    <LineAccountPicker v-model="editLineUserId" :users="registeredUsers" :disabled="staff.isSelf" />
+                    <p v-if="staff.isSelf" class="text-xs text-gray-400 mt-1">เปลี่ยน LINE ของตัวเองไม่ได้</p>
+                  </div>
+                </td>
+              </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -202,7 +223,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { fetchStaffList, createStaff, updateStaff, deleteStaff } from '../../services/backofficeApi';
+import { fetchStaffList, fetchRegisteredUsers, createStaff, updateStaff, deleteStaff } from '../../services/backofficeApi';
+import LineAccountPicker from '../../components/LineAccountPicker.vue';
 import { useLiff } from '../../composables/useLiff';
 import { useBackofficeAuth } from '../../composables/useBackofficeAuth';
 import { useRouter } from 'vue-router';
@@ -224,6 +246,8 @@ const editingId = ref(null);
 const editName = ref('');
 const editPhone = ref('');
 const editPosition = ref('');
+const editLineUserId = ref('');
+const registeredUsers = ref([]);
 
 const resetForm = () => {
   newStaff.value = { lineUserId: '', name: '', role: 'Teacher', phone: '', position: '', isVisibleInDirectory: true };
@@ -265,6 +289,8 @@ onMounted(async () => {
       return;
     }
     await loadStaff();
+    // Used by the LINE picker; the page still works as plain ID entry if this fails.
+    try { registeredUsers.value = await fetchRegisteredUsers(token); } catch { registeredUsers.value = []; }
   } catch (err) {
     error.value = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
   } finally {
@@ -322,13 +348,26 @@ const startEdit = (staff) => {
   editName.value = staff.name;
   editPhone.value = staff.phone || '';
   editPosition.value = staff.position || '';
+  editLineUserId.value = staff.lineUserId;
 };
 
 const saveEdit = async (staff) => {
   if (!editName.value.trim()) return;
+  const newLineUserId = editLineUserId.value.trim();
+  const lineChanged = newLineUserId && newLineUserId !== staff.lineUserId;
+  if (lineChanged) {
+    const who = registeredUsers.value.find((u) => u.lineUserId === newLineUserId);
+    const target = who ? `${who.name || '-'}${who.lineDisplayName ? ` (LINE: ${who.lineDisplayName})` : ''}` : newLineUserId;
+    if (!confirm(`เปลี่ยน LINE ของ ${staff.name} เป็น ${target}?\nคนเดิมจะเข้า backoffice ไม่ได้อีก`)) return;
+  }
   try {
     const token = getAccessToken();
-    await updateStaff(staff.id, { name: editName.value.trim(), phone: editPhone.value, position: editPosition.value }, token);
+    await updateStaff(staff.id, {
+      lineUserId: lineChanged ? newLineUserId : undefined,
+      name: editName.value.trim(),
+      phone: editPhone.value,
+      position: editPosition.value
+    }, token);
     editingId.value = null;
     await loadStaff();
   } catch (err) {
