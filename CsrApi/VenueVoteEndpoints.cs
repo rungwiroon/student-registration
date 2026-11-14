@@ -98,9 +98,9 @@ public static class VenueVoteEndpoints
     }
 
     /// <summary>Tally for every venue (zero-filled), in catalog order.</summary>
-    public static async Task<Either<AppError, IReadOnlyList<VenueVoteCount>>> GetTallyAsync(IVenueVoteRepository votes)
+    public static async Task<Either<AppError, IReadOnlyList<VenueVoteCount>>> GetTallyAsync(IVenueVoteRepository votes, VenueVoteOptions options)
     {
-        var counts = await votes.GetCountsAsync();
+        var counts = await votes.GetCountsAsync(options.ExcludedCodes());
         return counts.Map<IReadOnlyList<VenueVoteCount>>(byVenue => VenueCatalog.All
             .Select(v => byVenue.TryGetValue(v.Id, out var c)
                 ? new VenueVoteCount(v.Id, c.Count, c.People)
@@ -162,7 +162,7 @@ public static class VenueVoteEndpoints
         IReadOnlyList<VenueVoteCount>? tally = null;
         if (isClosed || myVenueId is not null)
         {
-            var tallyResult = await GetTallyAsync(votes);
+            var tallyResult = await GetTallyAsync(votes, options);
             if (tallyResult.IsLeft)
             {
                 return tallyResult.Match<Either<AppError, VenueVoteState>>(Right: _ => throw new InvalidOperationException(), Left: err => err);
