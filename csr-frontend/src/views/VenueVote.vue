@@ -28,6 +28,9 @@
           <router-link to="/register" class="mt-3 block w-full rounded-lg bg-brand-primary py-2 text-center font-bold text-white transition active:scale-95">
             ลงทะเบียนนักเรียน
           </router-link>
+          <router-link to="/register/join" class="mt-2 block w-full rounded-lg border border-brand-primary py-2 text-center font-bold text-brand-primary transition active:scale-95">
+            พ่อ/แม่ลงทะเบียนไว้แล้ว เข้าร่วมด้วย LINE นี้
+          </router-link>
         </div>
 
         <p v-if="savedMessage" role="status" class="rounded-xl border border-green-200 bg-green-50 p-3 text-center text-sm font-bold text-green-800">

@@ -5,6 +5,14 @@
     <main class="p-4 space-y-6">
     <h1 class="bg-gradient-to-r from-brand-primary-strong to-brand-secondary-strong bg-clip-text text-center text-xl font-bold text-transparent">{{ formTitle }}</h1>
 
+    <router-link
+      v-if="isReady && !isEditMode"
+      to="/register/join"
+      class="block rounded-xl border border-brand-primary bg-brand-primary-soft p-3 text-center text-sm text-text-primary"
+    >
+      พ่อ/แม่ลงทะเบียนนักเรียนไว้แล้ว? <span class="font-bold underline">เข้าร่วมด้วย LINE นี้</span>
+    </router-link>
+
     <div v-if="!isReady" class="py-10 text-center text-text-secondary animate-pulse">
       กำลังเชื่อมต่อ LINE...
     </div>
@@ -305,7 +313,15 @@ const submitForm = async () => {
     if (error instanceof UnauthorizedError) {
       return; // redirectToLogin จัดการแล้ว
     }
-    alert(`⚠️ เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'}`);
+    const message = error.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้';
+    // Student code already registered: most likely the other parent is signing in with their own LINE.
+    if (!isEditMode.value && message.includes('ถูกใช้งานแล้ว')) {
+      if (confirm(`⚠️ ${message}\n\nถ้าคุณเป็นพ่อ/แม่ของนักเรียนคนนี้ กด "ตกลง" เพื่อเข้าร่วมด้วย LINE นี้`)) {
+        router.push('/register/join');
+      }
+      return;
+    }
+    alert(`⚠️ เกิดข้อผิดพลาด: ${message}`);
   }
 };
 </script>

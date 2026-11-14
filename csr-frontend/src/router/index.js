@@ -17,6 +17,18 @@ const routes = [
     }
   },
   {
+    path: '/register/join',
+    name: 'JoinGuardian',
+    component: () => import('../views/JoinGuardian.vue'),
+    meta: {
+      frontofficeHeader: {
+        title: 'เข้าร่วมในฐานะผู้ปกครอง',
+        showBack: true,
+        showHome: true
+      }
+    }
+  },
+  {
     path: '/profile/edit',
     name: 'EditProfile',
     component: () => import('../views/Register.vue'),

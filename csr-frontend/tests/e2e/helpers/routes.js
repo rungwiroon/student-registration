@@ -12,4 +12,5 @@ export const routes = {
   document: '/document',
   shirtOrder: '/shirt-order',
   venueVote: '/venue-vote',
+  joinGuardian: '/register/join',
 };
