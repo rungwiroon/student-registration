@@ -17,6 +17,8 @@ public interface IVenueVoteRepository
     /// <summary>Per venue: (families, total attendees). Venues with no votes are absent.</summary>
     /// <param name="excludedStudentCodes">Test students whose votes must not be counted.</param>
     Task<Either<AppError, Dictionary<string, (int Count, int People)>>> GetCountsAsync(IReadOnlyCollection<string> excludedStudentCodes);
+    /// <summary>Every student with their vote (VenueId null = not voted), test students left out.</summary>
+    Task<Either<AppError, List<FamilyVoteRow>>> GetFamilyVotesAsync(IReadOnlyCollection<string> excludedStudentCodes);
     Task InitializeDatabaseAsync();
 }
 
@@ -114,6 +116,28 @@ public class VenueVoteRepository : IVenueVoteRepository
                 new { Excluded = excludedStudentCodes.Count == 0 ? new[] { "" } : excludedStudentCodes });
 
             return rows.ToDictionary(r => r.VenueId, r => ((int)r.Count, (int)r.People));
+        }
+        catch (Exception ex)
+        {
+            return AppError.Internal($"Database error: {ex.Message}");
+        }
+    }
+
+    public async Task<Either<AppError, List<FamilyVoteRow>>> GetFamilyVotesAsync(IReadOnlyCollection<string> excludedStudentCodes)
+    {
+        try
+        {
+            using var connection = GetConnection();
+            // Vote keys are lowercase Guid text; Students.Id may be upper-case, hence LOWER().
+            var rows = await connection.QueryAsync<FamilyVoteRow>(
+                @"SELECT s.Id AS Id, s.StudentId, s.NewRoom, s.NewNo, s.EncryptedName,
+                         v.VenueId, v.AttendeeCount, v.UpdatedAtUtc
+                  FROM Students s
+                  LEFT JOIN VenueVotes v ON v.StudentId = LOWER(s.Id)
+                  WHERE s.StudentId IS NULL OR s.StudentId NOT IN @Excluded",
+                new { Excluded = excludedStudentCodes.Count == 0 ? new[] { "" } : excludedStudentCodes });
+
+            return rows.ToList();
         }
         catch (Exception ex)
         {
