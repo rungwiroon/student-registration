@@ -130,6 +130,41 @@ public static class BackofficeEndpoints
             });
         });
 
+        // GET /api/backoffice/venue-vote/families — every family with their vote (venue + attendees).
+        // Both staff roles; ParentNetworkStaff gets the last name masked, like GET /students.
+        group.MapGet("/venue-vote/families", async (
+            HttpContext ctx,
+            IVenueVoteRepository votes,
+            IEncryptionService encryption,
+            Microsoft.Extensions.Options.IOptions<VenueVoteOptions> options) =>
+        {
+            var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();
+            var canViewFull = policy.CanViewFullProfile(ctx);
+
+            var result = await votes.GetFamilyVotesAsync(options.Value.ExcludedCodes());
+            return result.Match(
+                Right: rows => Results.Ok(rows
+                    .Select(r =>
+                    {
+                        var plainName = string.IsNullOrEmpty(r.EncryptedName) ? "" : encryption.Decrypt(r.EncryptedName);
+                        return new
+                        {
+                            StudentId = r.StudentId,
+                            Name = canViewFull ? plainName : MaskLastName(plainName),
+                            NewRoom = r.NewRoom,
+                            NewNo = r.NewNo,
+                            VenueId = r.VenueId,
+                            AttendeeCount = r.AttendeeCount,
+                            VotedAtUtc = r.UpdatedAtUtc,
+                            HasVoted = r.VenueId is not null
+                        };
+                    })
+                    .OrderBy(r => r.NewRoom, StringComparer.Ordinal)
+                    .ThenBy(r => r.NewNo ?? int.MaxValue)
+                    .ThenBy(r => r.StudentId, StringComparer.Ordinal)),
+                Left: err => Results.StatusCode(err.StatusCode));
+        });
+
         group.MapGet("/students", async (HttpContext ctx, IStudentRepository repo, IEncryptionService encryption, IMaskingService masking) =>
         {
             var policy = ctx.RequestServices.GetRequiredService<IBackofficePolicy>();

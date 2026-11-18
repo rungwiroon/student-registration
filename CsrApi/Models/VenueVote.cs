@@ -73,3 +73,19 @@ public sealed record VenueVoteState(
     IReadOnlyList<VenueVoteCount>? Counts,
     int? TotalVotes,
     int? TotalPeople);
+
+/// <summary>
+/// One student/family and their vote. VenueId is null when the family has not voted;
+/// AttendeeCount is also null for votes cast before the field existed.
+/// </summary>
+public sealed class FamilyVoteRow
+{
+    public string Id { get; set; } = string.Empty;
+    public string? StudentId { get; set; }
+    public string? NewRoom { get; set; }
+    public int? NewNo { get; set; }
+    public string EncryptedName { get; set; } = string.Empty;
+    public string? VenueId { get; set; }
+    public int? AttendeeCount { get; set; }
+    public string? UpdatedAtUtc { get; set; }
+}
